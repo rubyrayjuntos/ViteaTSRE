@@ -16,11 +16,11 @@ export default function ReadingPage() {
 
   // back‑guard: if no question (direct load), send home
   useEffect(() => {
-    if (!question) nav('/');
-  }, [question, nav]);
+    void play('shuffle');   // call & ignore the return value
+  }, [play]);
 
   // play shuffle once at mount
-  useEffect(() => play('shuffle'), []);
+  //useEffect(() => play('shuffle'), []);
 
   const spreadSize = spread === 'Destiny' ? 3 : spread === 'Cruz' ? 4 : 2;
 

@@ -1,17 +1,10 @@
-// src/hooks/useTarotReading.ts
-import { useEffect } from 'react';
 import { useTarotStore } from '@/stores/useTarotStore';
+import { useEffect } from 'react';
 
-/**
- * Stub hook: pushes placeholder cards into the Zustand store once.
- * Replace with real React‑Query + fetch logic when your FastAPI
- * endpoints are ready.
- */
 export function useTarotReading() {
   const { spread, pushCard } = useTarotStore();
 
   useEffect(() => {
-    // determine how many cards based on the selected spread
     const n = spread === 'Destiny' ? 3 : spread === 'Cruz' ? 4 : 2;
 
     Array.from({ length: n }).forEach((_, idx) => {
