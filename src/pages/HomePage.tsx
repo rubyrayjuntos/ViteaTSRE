@@ -1,0 +1,106 @@
+// src/pages/HomePage.tsx
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+
+import NeonButton from '@/components/NeonButton';
+import { useTarotStore } from '@/stores/useTarotStore';
+import { useAudio } from '@/components/AudioProvider';
+
+export default function HomePage() {
+  /** ------------------------------------------------------------------
+   * Zustand store
+   * -----------------------------------------------------------------*/
+  const {
+    question,
+    spread,
+    setQuestion,
+    setSpread,
+    reset, // clears question + cards
+  } = useTarotStore();
+
+  /** ------------------------------------------------------------------
+   * One‑time reset on page mount
+   * -----------------------------------------------------------------*/
+  useEffect(() => {
+    reset(); // remove this and the dependency array if you DON'T want an automatic reset
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /** ------------------------------------------------------------------
+   * Hooks
+   * -----------------------------------------------------------------*/
+  const navigate = useNavigate();
+  const { play } = useAudio();
+
+  /** ------------------------------------------------------------------
+   * Handlers
+   * -----------------------------------------------------------------*/
+  function handleSubmit() {
+    if (!question.trim()) return;
+    play('click');
+    navigate('/reading');
+  }
+
+  /** ------------------------------------------------------------------
+   * Render
+   * -----------------------------------------------------------------*/
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-cyan-950 to-emerald-900 text-yellow-50 px-4">
+      <div className="grid md:grid-cols-2 gap-10 max-w-6xl">
+        {/* Left column: copy & form */}
+        <div className="flex flex-col gap-6">
+          <motion.h1
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="text-pink-400 text-5xl font-extrabold tracking-tight"
+          >
+            Cartas del&nbsp;Deseo
+          </motion.h1>
+
+          <p className="max-w-md leading-relaxed">
+            A Latinx spiritual experience where fate wears lipstick, temptation
+            deals the cards, and every question becomes a confession.
+          </p>
+
+          <input
+            type="text"
+            placeholder="What is your burning question?"
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+            className="w-full px-4 py-3 rounded-md bg-slate-800/50 focus:outline-none focus:ring-2 focus:ring-brandPink placeholder:text-slate-400"
+          />
+
+          <NeonButton onClick={handleSubmit}>✧ Tempt Fate ✧</NeonButton>
+
+          <div className="pt-4">
+            <label className="block pb-1">Choose your spread…</label>
+            <select
+              value={spread}
+              onChange={(e) =>
+                setSpread(e.target.value as Parameters<typeof setSpread>[0])
+              }
+              className="bg-slate-800/50 px-3 py-2 rounded-md"
+            >
+              <option value="Destiny">Destiny&nbsp;(3 cards)</option>
+              <option value="Cruz">Cruz&nbsp;(4 cards)</option>
+              <option value="Love">Love&nbsp;(2 cards)</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Right column: hero image */}
+        <motion.img
+          initial={{ opacity: 0, scale: 0.96 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8 }}
+          src="/img/entrance-hero.png"
+          alt="Moody man in water"
+          className="rounded-3xl border-4 border-brandGold shadow-2xl max-h-[75vh] object-cover"
+        />
+      </div>
+    </div>
+  );
+}
