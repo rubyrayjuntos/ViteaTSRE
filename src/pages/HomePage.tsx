@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import NeonButton from '@/components/NeonButton';
 import { useTarotStore } from '@/stores/useTarotStore';
 import { useAudio } from '@/components/AudioProvider';
+import { ArrowLongRightIcon } from '@heroicons/react/24/outline';
 
 export default function HomePage() {
   /** ------------------------------------------------------------------
@@ -97,8 +98,9 @@ export default function HomePage() {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.8 }}
           src="/img/entrance-hero.png"
-          alt="Moody man in water"
-          className="rounded-3xl border-4 border-brandGold shadow-2xl max-h-[75vh] object-cover"
+          alt="Papi Chispa in water"
+          //className="rounded-3xl border-4 border-brandGold shadow-2xl max-h-[75vh] object-cover"
+          className="rounded-3xl border-4 border-brandGold shadow-2xl transition-all duration-500 hover:filter hover:[filter:url('#ripple')]"
         />
       </div>
     </div>

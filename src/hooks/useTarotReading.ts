@@ -1,5 +1,5 @@
 // src/hooks/useTarotReading.ts
-import { useEffect } from 'react';
+import { useEffect,useRef } from 'react';
 import { useTarotStore } from '@/stores/useTarotStore';
 
 /**
@@ -9,8 +9,12 @@ import { useTarotStore } from '@/stores/useTarotStore';
  */
 export function useTarotReading() {
   const { spread, pushCard } = useTarotStore();
+  const hasRun = useRef(false); 
 
   useEffect(() => {
+    if (hasRun.current) return;   // skip second mount in StrictMode
+    hasRun.current = true;
+
     // determine how many cards based on the selected spread
     const n = spread === 'Destiny' ? 3 : spread === 'Cruz' ? 4 : 2;
 
@@ -22,7 +26,7 @@ export function useTarotReading() {
       });
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // run once on mount
+  }, [spread,pushCard]); // run once on mount
 
   return { isFetching: false };
 }

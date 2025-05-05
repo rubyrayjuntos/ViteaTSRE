@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg viewBox="0 0 160 100" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="kissGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"  stop-color="#ff006e"/>
+      <stop offset="100%" stop-color="#ff4da6"/>
+    </linearGradient>
+  </defs>
+  <path d="M10 50 Q35 15 80 35 Q125 15 150 50 Q125 85 80 65 Q35 85 10 50Z"
+        fill="url(#kissGrad)" />
+</svg>

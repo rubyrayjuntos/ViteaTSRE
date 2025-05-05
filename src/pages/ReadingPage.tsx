@@ -16,7 +16,11 @@ export default function ReadingPage() {
 
   // back‑guard: if no question (direct load), send home
   useEffect(() => {
-    void play('shuffle');   // call & ignore the return value
+    try {
+      void play('shuffle'); // call & ignore the return value
+    } catch (error) {
+      console.error('Error playing shuffle sound:', error);
+    }
   }, [play]);
 
   // play shuffle once at mount

@@ -3,7 +3,9 @@
 
 <head>
   <meta charset="UTF-8" />
-  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  //<link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <link rel="icon" href="/favicon.ico" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Vite + React + TS + Shadcn-ui</title>
   <script async src="https://umami.moinulmoin.com/script.js"
@@ -11,6 +13,16 @@
 </head>
 
 <body>
+  <svg width="0" height="0" class="absolute">
+    <filter id="ripple">
+      <feTurbulence type="turbulence" baseFrequency="0.02" numOctaves="2" result="turb"/>
+      <feDisplacementMap in="SourceGraphic" in2="turb" scale="10" />
+      <animate xlink:href="#ripple feTurbulence"
+               attributeName="baseFrequency"
+               values="0.02;0.04;0.02" dur="6s" repeatCount="indefinite" />
+    </filter>
+  </svg>
+  
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
 </body>
