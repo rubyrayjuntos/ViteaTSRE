@@ -1,6 +1,6 @@
 // src/components/TarotCard.tsx
 import { motion } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface Props {
   faceUrl: string | null; // null = still face‑down
@@ -10,6 +10,10 @@ interface Props {
 
 export default function TarotCard({ faceUrl, onFlipEnd, size = 180 }: Props) {
   const [flipped, setFlipped] = useState(false);
+
+  useEffect(() => {
+    if (faceUrl && !flipped) setFlipped(true);
+  }, [faceUrl, flipped]);
 
   const handleFlip = () => {
     if (faceUrl) setFlipped(true);

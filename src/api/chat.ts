@@ -1,7 +1,3 @@
-export interface ChatResponse {
-  text: string;
-}
-
 export async function drawCardChat(cardId: string, question: string) {
   const res = await fetch("/api/chat", {
     method: "POST",
@@ -9,7 +5,12 @@ export async function drawCardChat(cardId: string, question: string) {
     body: JSON.stringify({ card_id: cardId, question }),
   });
 
-  if (!res.ok) throw new Error(`Chat error ${res.status}`);
-  const data: ChatResponse = await res.json();
+  if (!res.ok) {
+    // grab plain text for easier debugging
+    const msg = await res.text();
+    throw new Error(`chat ${res.status}: ${msg}`);
+  }
+
+  const data: { text: string } = await res.json();
   return data.text;
 }

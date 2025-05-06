@@ -1,40 +1,46 @@
 <!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Papi Chispa – Cartas del Deseo</title>
 
-<head>
-  <meta charset="UTF-8" />
-  <link rel="icon" href="/favicon.ico" />
+    <!-- optional user‑consent wrapper for Umami -->
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        if (confirm("Do you consent to analytics tracking?")) {
+          const s = document.createElement("script");
+          s.src = "https://umami.moinulmoin.com/script.js";
+          s.dataset.websiteId = "4b33d804-29a8-4325-95bb-fc64ebdcf0ff";
+          document.head.appendChild(s);
+        }
+      });
+    </script>
+  </head>
 
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Papi Chispa - Cartas del Deseo</title>
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      const userConsent = confirm("Do you consent to analytics tracking?");
-      if (userConsent) {
-        const script = document.createElement('script');
-  
-  <svg width="0" height="0" class="absolute"></svg>
-        script.src = "https://umami.moinulmoin.com/script.js";
-        script.setAttribute('data-website-id', '4b33d804-29a8-4325-95bb-fc64ebdcf0ff');
-        document.head.appendChild(script);
-      }
-    });
-  </script>
-</head>
+  <body>
+    <!-- ripple displacement filter -->
+    <svg width="0" height="0" style="position:absolute">
+      <filter id="ripple">
+        <feTurbulence
+          type="turbulence"
+          baseFrequency="0.02"
+          numOctaves="2"
+          result="turb"
+        />
+        <feDisplacementMap in="SourceGraphic" in2="turb" scale="10" />
+        <animate
+          xlink:href="#ripple feTurbulence"
+          attributeName="baseFrequency"
+          values="0.02;0.04;0.02"
+          dur="6s"
+          repeatCount="indefinite"
+        />
+      </filter>
+    </svg>
 
-<body>
-  <svg width="0" height="0" class="absolute">
-    <filter id="ripple">
-      <feTurbulence type="turbulence" baseFrequency="0.02" numOctaves="2" result="turb"/>
-      <animate href="#ripple feTurbulence"
-               attributeName="baseFrequency"
-               values="0.02;0.04;0.02" dur="6s" repeatCount="indefinite" />
-               values="0.02;0.04;0.02" dur="6s" repeatCount="indefinite" />
-    </filter>
-  </svg>
-  
-  <div id="root"></div>
-  <script type="module" src="./src/main.tsx"></script>
-</body>
-
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>

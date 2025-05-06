@@ -11,14 +11,20 @@ export function useTarotReading() {
   const mutate = useMutation({
     mutationFn: async () => {
       const n = spread === "Destiny" ? 3 : spread === "Cruz" ? 4 : 2;
-
+  
       for (let idx = 0; idx < n; idx++) {
         const cardId = `CARD_${idx + 1}`;
+  
+        // wait for this card’s data before moving on
         const [text, imageUrl] = await Promise.all([
           drawCardChat(cardId, question),
-          drawCardImage(cardId), // still returns placeholder for now
+          drawCardImage(idx + 1),
         ]);
+  
         pushCard({ id: cardId, text, imageUrl });
+  
+        // optional dramatic pause between flips
+        await new Promise((r) => setTimeout(r, 600));
       }
     },
   });
