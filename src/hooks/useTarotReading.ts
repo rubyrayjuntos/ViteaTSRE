@@ -1,32 +1,33 @@
-// src/hooks/useTarotReading.ts
-import { useEffect,useRef } from 'react';
-import { useTarotStore } from '@/stores/useTarotStore';
+import { useQueryClient, useMutation } from "@tanstack/react-query";
+import { useTarotStore } from "@/stores/useTarotStore";
+import { drawCardChat, drawCardImage } from "@/api";
+import { useEffect, useRef } from "react";
 
-/**
- * Stub hook: pushes placeholder cards into the Zustand store once.
- * Replace with real React‑Query + fetch logic when your FastAPI
- * endpoints are ready.
- */
 export function useTarotReading() {
-  const { spread, pushCard } = useTarotStore();
-  const hasRun = useRef(false); 
+  const { question, spread, pushCard } = useTarotStore();
+  const qc = useQueryClient();
+  const hasRun = useRef(false);
+
+  const mutate = useMutation({
+    mutationFn: async () => {
+      const n = spread === "Destiny" ? 3 : spread === "Cruz" ? 4 : 2;
+
+      for (let idx = 0; idx < n; idx++) {
+        const cardId = `CARD_${idx + 1}`;
+        const [text, imageUrl] = await Promise.all([
+          drawCardChat(cardId, question),
+          drawCardImage(cardId), // still returns placeholder for now
+        ]);
+        pushCard({ id: cardId, text, imageUrl });
+      }
+    },
+  });
 
   useEffect(() => {
-    if (hasRun.current) return;   // skip second mount in StrictMode
+    if (hasRun.current) return;
     hasRun.current = true;
+    mutate.mutate();
+  }, []);
 
-    // determine how many cards based on the selected spread
-    const n = spread === 'Destiny' ? 3 : spread === 'Cruz' ? 4 : 2;
-
-    Array.from({ length: n }).forEach((_, idx) => {
-      pushCard({
-        id: `FAKE_${idx + 1}`,
-        imageUrl: `/img/card0${idx + 1}.png`,
-        text: `This is stub text for card ${idx + 1}.`,
-      });
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [spread,pushCard]); // run once on mount
-
-  return { isFetching: false };
+  return { isFetching: mutate.status === "pending" };
 }

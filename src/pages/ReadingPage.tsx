@@ -1,17 +1,16 @@
 // src/pages/ReadingPage.tsx
 import { useEffect } from 'react';
 import { useTarotStore } from '../stores/useTarotStore';
-import { useNavigate } from 'react-router-dom';
+
 import TarotCard from '../components/TarotCard';
 import LoadingDots from '../components/LoadingDots';
 import { useTarotReading } from '../hooks/useTarotReading';
-import { motion } from 'framer-motion';
 import { useAudio } from '../components/AudioProvider';
+import ChatBubble from "@/components/ChatBubble";
 
 export default function ReadingPage() {
   const { question, spread, cards } = useTarotStore();
-  const nav = useNavigate();
-  const { data, isFetching } = useTarotReading();
+  const { isFetching } = useTarotReading();
   const { play } = useAudio();
 
   // back‑guard: if no question (direct load), send home
@@ -43,30 +42,24 @@ export default function ReadingPage() {
         ))}
       </div>
 
-      {/* chat bubbles */}
-      <div className="mt-8 w-full max-w-lg flex flex-col gap-3">
-        {cards.map((c) => (
-          <motion.div
-            key={c.id}
-            initial={{ opacity: 0, x: 40 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="bg-slate-800/60 rounded-lg p-4 backdrop-blur"
-          >
-            <img
-              src={c.imageUrl}
-              alt={c.id}
-              className="w-20 h-32 object-cover float-left mr-3 rounded-md"
-            />
-            <p className="text-sm whitespace-pre-line">{c.text}</p>
-          </motion.div>
-        ))}
+{/* chat bubbles */}
+<div className="mt-8 w-full max-w-lg flex flex-col gap-3">
+  {cards.map((c) => (
+    <ChatBubble
+      key={c.id}
+      id={c.id}
+      imageUrl={c.imageUrl}
+      text={c.text}
+    />
+  ))}
 
-        {isFetching && (
-          <div className="self-center py-4">
-            <LoadingDots />
-          </div>
-        )}
-      </div>
+  {isFetching && (
+    <div className="self-center py-4">
+      <LoadingDots />
+    </div>
+  )}
+</div>
+
     </div>
   );
 }

@@ -2,6 +2,8 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import ReadingPage from './pages/ReadingPage';
+import MusicToggle from './components/MusicToggle';
+
 
 export default function AppRouter() {
   return (
@@ -10,6 +12,8 @@ export default function AppRouter() {
         <Route path="/" element={<HomePage />} />
         <Route path="/reading" element={<ReadingPage />} />
       </Routes>
+      <MusicToggle />
+      
     </BrowserRouter>
   );
 }
