@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import NeonButton from '@/components/NeonButton';
 import { useTarotStore } from '@/stores/useTarotStore';
 import { useAudio } from '@/components/AudioProvider';
-import { ArrowLongRightIcon } from '@heroicons/react/24/outline';
+//import { ArrowLongRightIcon } from '@heroicons/react/24/outline';
 
 export default function HomePage() {
   /** ------------------------------------------------------------------
@@ -32,7 +32,7 @@ export default function HomePage() {
    * Hooks
    * -----------------------------------------------------------------*/
   const navigate = useNavigate();
-  const { play } = useAudio();
+  const { play, toggleMusic, musicPlaying } = useAudio();
 
   /** ------------------------------------------------------------------
    * Handlers
@@ -40,6 +40,7 @@ export default function HomePage() {
   function handleSubmit() {
     if (!question.trim()) return;
     play('click');
+    if (!musicPlaying) toggleMusic(); // start ambient loop
     navigate('/reading');
   }
 
