@@ -99,8 +99,7 @@ export default function HomePage() {
           transition={{ duration: 0.8 }}
           src="/img/entrance-hero.png"
           alt="Papi Chispa in water"
-          //className="rounded-3xl border-4 border-brandGold shadow-2xl max-h-[75vh] object-cover"
-          className="rounded-3xl border-4 border-brandGold shadow-2xl transition-all duration-500 hover:filter hover:[filter:url('#ripple')]"
+         className="rounded-3xl border-4 border-brandGold shadow-2xl transition-all duration-500 hover:filter hover:[filter:url('#ripple')]"
         />
       </div>
     </div>

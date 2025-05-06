@@ -21,7 +21,7 @@ export function useTarotReading() {
     Array.from({ length: n }).forEach((_, idx) => {
       pushCard({
         id: `FAKE_${idx + 1}`,
-        imageUrl: `https://source.unsplash.com/400x640/?tarot,card,${idx}`,
+        imageUrl: `/img/card0${idx + 1}.png`,
         text: `This is stub text for card ${idx + 1}.`,
       });
     });
