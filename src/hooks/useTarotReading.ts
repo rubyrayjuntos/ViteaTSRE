@@ -1,30 +1,23 @@
-import { useQueryClient, useMutation } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useTarotStore } from "@/stores/useTarotStore";
-import { drawCardChat, drawCardImage } from "@/api";
-import { useEffect, useRef } from "react";
+// Removed unused imports
+import { useEffect, useRef, useMemo } from "react";
+import { fetchReading } from "@/services/tarotService"; // Adjusted the path to use an alias
 
 export function useTarotReading() {
-  const { question, spread, pushCard } = useTarotStore();
-  const qc = useQueryClient();
+  const { question, pushCard, spread } = useTarotStore();
+  const computedSpreadSize = useMemo(() => {
+    return spread === 'Destiny' ? 3 : spread === 'Cruz' ? 4 : 2;
+  }, [spread]);
   const hasRun = useRef(false);
 
   const mutate = useMutation({
     mutationFn: async () => {
-      const n = spread === "Destiny" ? 3 : spread === "Cruz" ? 4 : 2;
-  
-      for (let idx = 0; idx < n; idx++) {
-        const cardId = `CARD_${idx + 1}`;
-  
-        // wait for this card’s data before moving on
-        const [text, imageUrl] = await Promise.all([
-          drawCardChat(cardId, question),
-          drawCardImage(idx + 1),
-        ]);
-  
-        pushCard({ id: cardId, text, imageUrl });
-  
-        // optional dramatic pause between flips
-        await new Promise((r) => setTimeout(r, 600));
+      try {
+        const cards = await fetchReading(question, computedSpreadSize);
+        cards.forEach(pushCard);
+      } catch (error) {
+        console.error('Error fetching tarot reading:', error);
       }
     },
   });
@@ -33,7 +26,7 @@ export function useTarotReading() {
     if (hasRun.current) return;
     hasRun.current = true;
     mutate.mutate();
-  }, []);
+  }, [mutate]);
 
   return { isFetching: mutate.status === "pending" };
 }

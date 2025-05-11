@@ -1,4 +1,3 @@
-import { buttonVariants } from "@/components/ui/button";
 
 function App() {
   return (

@@ -11,7 +11,7 @@ export function useTarotReading() {
       pushCard({
         id: `FAKE_${idx + 1}`,
         imageUrl: `https://source.unsplash.com/400x640/?tarot,card,${idx}`,
-        text: `This is stub text for card ${idx + 1}.`,
+        text: `This is stub text for card ${idx + 1}.`,
       });
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps

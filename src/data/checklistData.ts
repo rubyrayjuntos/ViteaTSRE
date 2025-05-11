@@ -23,6 +23,8 @@ export interface ChecklistItem {
     | "docker"
     | "general";
   
+  import React from "react";
+ 
   import {
     Code,
     FileJson,
@@ -30,7 +32,6 @@ export interface ChecklistItem {
     Zap,
     Shield,
     Package,
-    Database,
   } from "lucide-react";
   
   /* …(same arrays you already had, trimmed for brevity)… */
@@ -43,16 +44,16 @@ export interface ChecklistItem {
     fastapiItems,
     pydanticItems,
     dockerItems,
-  } from "./items"; // <- break up further if you like
+  } from "./items"; // Consider breaking up imports into separate files for better modularity if needed
   
   export const SECTIONS: Section[] = [
-    { key: "general", title: "General Code Quality", icon: <Code />, items: generalItems },
-    { key: "react", title: "React Components", icon: <Code />, items: reactItems },
-    { key: "typescript", title: "TypeScript", icon: <FileJson />, items: typescriptItems },
-    { key: "tailwind", title: "Tailwind CSS", icon: <Code />, items: tailwindItems },
-    { key: "zustand", title: "Zustand State", icon: <Settings />, items: zustandItems },
-    { key: "fastapi", title: "FastAPI", icon: <Zap />, items: fastapiItems },
-    { key: "pydantic", title: "Pydantic", icon: <Shield />, items: pydanticItems },
-    { key: "docker", title: "Docker & Compose", icon: <Package />, items: dockerItems },
+    { key: "general", title: "General Code Quality", icon: React.createElement(Code), items: generalItems },
+    { key: "react", title: "React Components", icon: React.createElement(Settings), items: reactItems },
+    { key: "typescript", title: "TypeScript", icon: React.createElement(FileJson), items: typescriptItems },
+    { key: "tailwind", title: "Tailwind CSS", icon: React.createElement(Zap), items: tailwindItems },
+    { key: "zustand", title: "Zustand State", icon: React.createElement(Settings), items: zustandItems },
+    { key: "fastapi", title: "FastAPI", icon: React.createElement(Zap), items: fastapiItems },
+    { key: "pydantic", title: "Pydantic", icon: React.createElement(Shield), items: pydanticItems },
+    { key: "docker", title: "Docker & Compose", icon: React.createElement(Package), items: dockerItems }
   ];
   

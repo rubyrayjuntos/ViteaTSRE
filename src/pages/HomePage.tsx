@@ -5,8 +5,6 @@ import { motion } from 'framer-motion';
 
 import NeonButton from '@/components/NeonButton';
 import { useTarotStore } from '@/stores/useTarotStore';
-import { useAudio } from '@/components/AudioProvider';
-//import { ArrowLongRightIcon } from '@heroicons/react/24/outline';
 
 export default function HomePage() {
   /** ------------------------------------------------------------------
@@ -32,15 +30,12 @@ export default function HomePage() {
    * Hooks
    * -----------------------------------------------------------------*/
   const navigate = useNavigate();
-  const { play, toggleMusic, musicPlaying } = useAudio();
 
   /** ------------------------------------------------------------------
    * Handlers
    * -----------------------------------------------------------------*/
   function handleSubmit() {
     if (!question.trim()) return;
-    play('click');
-    if (!musicPlaying) toggleMusic(); // start ambient loop
     navigate('/reading');
   }
 
@@ -75,7 +70,7 @@ export default function HomePage() {
             className="w-full px-4 py-3 rounded-md bg-slate-800/50 focus:outline-none focus:ring-2 focus:ring-brandPink placeholder:text-slate-400"
           />
 
-          <NeonButton onClick={handleSubmit}>✧ Tempt Fate ✧</NeonButton>
+          <NeonButton onClick={handleSubmit}>✧ Tempt Fate ✧</NeonButton>
 
           <div className="pt-4">
             <label className="block pb-1">Choose your spread…</label>
@@ -86,9 +81,9 @@ export default function HomePage() {
               }
               className="bg-slate-800/50 px-3 py-2 rounded-md"
             >
-              <option value="Destiny">Destiny&nbsp;(3 cards)</option>
-              <option value="Cruz">Cruz&nbsp;(4 cards)</option>
-              <option value="Love">Love&nbsp;(2 cards)</option>
+              <option value="Destiny">Destiny (3 cards)</option>
+              <option value="Cruz">Cruz (4 cards)</option>
+              <option value="Love">Love (2 cards)</option>
             </select>
           </div>
         </div>
@@ -100,7 +95,7 @@ export default function HomePage() {
           transition={{ duration: 0.8 }}
           src="/img/entrance-hero.png"
           alt="Papi Chispa in water"
-         className="rounded-3xl border-4 border-brandGold shadow-2xl transition-all duration-500 hover:filter hover:[filter:url('#ripple')]"
+          className="rounded-3xl border-4 border-brandGold shadow-2xl transition-all duration-500 hover:[filter:url('#ripple')]"
         />
       </div>
     </div>

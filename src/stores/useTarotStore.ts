@@ -9,10 +9,12 @@ export interface DrawnCard {
 
 type SpreadType = 'Destiny' | 'Cruz' | 'Love';
 
+
 interface TarotState {
   question: string;
   spread: SpreadType;
   cards: DrawnCard[];
+  spreadSize: number;
   setQuestion(q: string): void;
   setSpread(s: SpreadType): void;
   pushCard(c: DrawnCard): void;
@@ -23,6 +25,7 @@ export const useTarotStore = create<TarotState>((set) => ({
   question: '',
   spread: 'Destiny',
   cards: [],
+  spreadSize: 0, // Default value for spreadSize
   setQuestion: (q) => set({ question: q }),
   setSpread: (s) => set({ spread: s }),
   pushCard: (c) => set((st) => ({ cards: [...st.cards, c] })),

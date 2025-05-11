@@ -1,45 +1,24 @@
 // src/components/AudioProvider.tsx
-import { createContext, useContext, PropsWithChildren, useRef } from "react";
-import { Howl } from "howler";
+import { createContext, useContext, PropsWithChildren, useEffect } from "react";
+import { AudioManager, useAudioManager } from "@/utils/AudioManager"; // Import hook for audioManager
 
-interface AudioApi {
-  play(name: SfxKey): void;
-  toggleMusic(): void;
-  musicPlaying: boolean;
-}
-type SfxKey = "click" | "flip" | "shuffle";
-
-const AudioCtx = createContext<AudioApi | null>(null);
+const AudioCtx = createContext<AudioManager | null>(null);
 
 export default function AudioProvider({ children }: PropsWithChildren) {
-  const bgMusic = useRef(
-    new Howl({
-      src: ["/audio/ambient-loop.mp3"],
-      loop: true,
-      volume: 0.3, // nice and low
-    })
-  ).current;
+  const audioManager = useAudioManager(); // Use the custom hook for audioManager
 
-  const sfx: Record<SfxKey, Howl> = {
-    click: new Howl({ src: ["/audio/click.mp3"] }),
-    flip: new Howl({ src: ["/audio/flip.mp3"] }),
-    shuffle: new Howl({ src: ["/audio/shuffle.mp3"] }),
-  };
+  useEffect(() => {
+    // Cleanup audio resources when the component unmounts
+    return () => {
+      audioManager.cleanup();
+    };
+  }, [audioManager]);
 
-  const api = {
-    play: (n: SfxKey) => void sfx[n].play(),
-    toggleMusic: () =>
-      bgMusic.playing() ? bgMusic.fade(0.3, 0, 400).once("fade", () => bgMusic.pause())
-                        : (bgMusic.volume(0), bgMusic.play(), bgMusic.fade(0, 0.3, 400)),
-    get musicPlaying() {
-      return bgMusic.playing();
-    },
-  };
-
-  return <AudioCtx.Provider value={api}>{children}</AudioCtx.Provider>;
+  return <AudioCtx.Provider value={audioManager}>{children}</AudioCtx.Provider>;
 }
+
 export const useAudio = () => {
   const ctx = useContext(AudioCtx);
-  if (!ctx) throw new Error("useAudio outside provider");
+  if (!ctx) throw new Error("useAudio must be used within an AudioProvider");
   return ctx;
 };
