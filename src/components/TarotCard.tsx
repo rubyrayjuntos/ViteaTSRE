@@ -6,9 +6,10 @@ interface Props {
   faceUrl: string | null; // null = still face‑down
   onFlipEnd?: () => void;
   size?: number; // px
+  children?: React.ReactNode;
 }
 
-export default function TarotCard({ faceUrl, onFlipEnd, size = 180 }: Props) {
+export default function TarotCard({ faceUrl, onFlipEnd, size = 180, children }: Props) {
   const [flipped, setFlipped] = useState(false);
 
   useEffect(() => {
@@ -51,6 +52,8 @@ export default function TarotCard({ faceUrl, onFlipEnd, size = 180 }: Props) {
             />
           </div>
         )}
+        {/* Loading Dots */}
+        {!flipped && children}
       </motion.div>
     </motion.div>
   );
