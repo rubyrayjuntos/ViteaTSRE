@@ -14,8 +14,10 @@ export function useTarotReading() {
   const mutate = useMutation({
     mutationFn: async () => {
       try {
-        const cards = await fetchReading(question, computedSpreadSize);
-        cards.forEach(pushCard);
+        for (let i = 0; i < computedSpreadSize; i++) {
+          const [card] = await fetchReading(question, 1); // Fetch one card at a time
+          pushCard(card); // Push the card to the Zustand store
+        }
       } catch (error) {
         console.error('Error fetching tarot reading:', error);
       }

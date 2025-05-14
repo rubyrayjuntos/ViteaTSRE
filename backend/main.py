@@ -73,6 +73,7 @@ async def dall_e(req: CardReq):
 @app.post("/api/reading", response_model=ReadingOut)
 async def reading(req: ReadingReq):
     if req.spread not in {2, 3, 4}:
+        logger.error(f"Invalid spread value: {req.spread}")
         raise HTTPException(400, "spread must be 2, 3, or 4")
 
     if len(TAROT_CARDS) < req.spread:
@@ -126,13 +127,24 @@ async def reading(req: ReadingReq):
                 )
             except OpenAIError as e:
                 logger.error(f"OpenAI API error for card {name}: {e}")
-                raise HTTPException(status_code=500, detail=f"Failed to generate data for card {name}")
+                return CardOut(
+                    name=name,
+                    imageUrl="",
+                    text=f"Error generating data for card {name}: {e}",
+                )
             except Exception as e:
                 logger.error(f"Unexpected error for card {name}: {traceback.format_exc()}")
-                raise HTTPException(status_code=500, detail=f"Failed to generate data for card {name}")
+                return CardOut(
+                    name=name,
+                    imageUrl="",
+                    text=f"Unexpected error generating data for card {name}",
+                )
 
         # Parallelize API calls
-        out_cards = await asyncio.gather(*(generate_card_data(name) for name in chosen))
+        out_cards = await asyncio.gather(
+            *(generate_card_data(name) for name in chosen),
+            return_exceptions=False  # Ensure exceptions are handled within the function
+        )
 
         return ReadingOut(cards=out_cards)
     except Exception as e:
