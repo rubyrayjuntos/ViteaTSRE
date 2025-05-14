@@ -8,12 +8,18 @@ from random import sample
 from deck import TAROT_CARDS
 import logging
 import traceback  # Added for detailed error logging
+from fastapi.responses import FileResponse
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 if not OPENAI_API_KEY:
     raise RuntimeError("Missing OPENAI_API_KEY")
+logger.debug(f"OPENAI_API_KEY loaded: {OPENAI_API_KEY}")
 
 # Validate tarot cards at startup
 if not TAROT_CARDS or len(TAROT_CARDS) < 2:
@@ -23,13 +29,17 @@ if not TAROT_CARDS or len(TAROT_CARDS) < 2:
 client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 app = FastAPI(title="Papi Chispa API")
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
 # Constants
 DALL_E_MODEL = "dall-e-3"
-GPT_MODEL = "gpt-4o-mini"
+GPT_MODEL = "gpt-4"
+
+@app.get("/")
+async def root():
+    return {"message": "Welcome to the Tarot API"}
+
+@app.get("/favicon.ico")
+async def favicon():
+    return FileResponse("favicon.ico")
 
 # Models
 class ReadingReq(BaseModel):
@@ -72,17 +82,12 @@ async def dall_e(req: CardReq):
 
 @app.post("/api/reading", response_model=ReadingOut)
 async def reading(req: ReadingReq):
-    if req.spread not in {2, 3, 4}:
-        logger.error(f"Invalid spread value: {req.spread}")
-        raise HTTPException(400, "spread must be 2, 3, or 4")
-
-    if len(TAROT_CARDS) < req.spread:
-        logger.error("Insufficient tarot cards available")
-        raise HTTPException(500, "Insufficient tarot cards available")
-
     try:
+        # Choose cards for the spread
         chosen = sample(TAROT_CARDS, req.spread)
+        logger.debug(f"Chosen cards for spread: {chosen}")
 
+        # Generate card data in parallel
         async def generate_card_data(name: str):
             try:
                 # Generate image
@@ -90,10 +95,9 @@ async def reading(req: ReadingReq):
                 img = await client.images.generate(
                     model=DALL_E_MODEL,
                     prompt=f"Tarot card illustration of {name} in neon retro Latino style",
-                    size="512x768",
+                    size="1024x1024",  # Updated to a supported size
                     n=1,
                 )
-
                 # Generate chat response
                 logger.info(f"Generating chat response for card: {name}")
                 resp = await client.chat.completions.create(
@@ -119,7 +123,6 @@ async def reading(req: ReadingReq):
                         },
                     ],
                 )
-
                 return CardOut(
                     name=name,
                     imageUrl=img.data[0].url,
@@ -140,13 +143,12 @@ async def reading(req: ReadingReq):
                     text=f"Unexpected error generating data for card {name}",
                 )
 
-        # Parallelize API calls
         out_cards = await asyncio.gather(
-            *(generate_card_data(name) for name in chosen),
-            return_exceptions=False  # Ensure exceptions are handled within the function
+            *(generate_card_data(name) for name in chosen)
         )
 
+        logger.debug(f"Generated card data: {out_cards}")
         return ReadingOut(cards=out_cards)
     except Exception as e:
-        logger.error(f"Error generating reading: {traceback.format_exc()}")
+        logger.error(f"Error in /api/reading: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail="Failed to generate reading")

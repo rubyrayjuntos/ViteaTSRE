@@ -16,9 +16,10 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:8000', // Ensure this matches your backend URL
+        target: 'http://localhost:8000', // Ensure this matches the backend's address
         changeOrigin: true,
         secure: false,
+        rewrite: (path) => path.replace(/^\/api/, ''), // Rewrite '/api' to match backend routes
       },
     },
   },

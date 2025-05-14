@@ -7,6 +7,10 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Debug: Print the contents of the .env file during build
+COPY .env .env
+RUN echo "Contents of .env file during build:" && cat .env
+
 # Copy the rest of the application code
 COPY . .
 
