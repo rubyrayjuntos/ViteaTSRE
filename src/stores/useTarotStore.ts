@@ -17,7 +17,8 @@ interface TarotState {
   spreadSize: number;
   setQuestion(q: string): void;
   setSpread(s: SpreadType): void;
-  pushCard(c: DrawnCard): void;
+  initializeSpread(count: number): void;
+  updateCardData(cardIndex: number, data: Partial<DrawnCard>): void;
   reset(): void;
 }
 
@@ -28,6 +29,19 @@ export const useTarotStore = create<TarotState>((set) => ({
   spreadSize: 0, // Default value for spreadSize
   setQuestion: (q) => set({ question: q }),
   setSpread: (s) => set({ spread: s }),
-  pushCard: (c) => set((st) => ({ cards: [...st.cards, c] })),
+  initializeSpread: (count) => set(() => ({
+    cards: Array.from({ length: count }, (_, i) => ({
+      id: `PENDING_ID_${i}`, // Temporary ID, will be overwritten
+      imageUrl: '',          // Placeholder
+      text: '',              // Placeholder
+    })),
+  })),
+  updateCardData: (cardIndex, data) => set((state) => {
+    const newCards = [...state.cards];
+    if (newCards[cardIndex]) {
+      newCards[cardIndex] = { ...newCards[cardIndex], ...data };
+    }
+    return { cards: newCards };
+  }),
   reset: () => set({ question: '', cards: [] }),
 }));
