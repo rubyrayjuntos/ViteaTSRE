@@ -19,7 +19,6 @@ export default defineConfig({
         target: 'http://backend:8000', // Ensure this matches the backend's address
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => path.replace(/^\/api/, ''), // Rewrite '/api' to match backend routes
       },
     },
   },

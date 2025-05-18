@@ -1,53 +1,79 @@
-import { type DrawnCard } from "@/stores/useTarotStore"; // SpreadType is no longer directly used here for the payload
+// /workspaces/ViteaTSRE/src/services/tarotService.ts
+import { type DrawnCard } from "@/stores/useTarotStore";
 
 export interface CardRequestPayload {
   question: string;
-  totalCardsInSpread: number; // Renamed from 'spread' for clarity, represents total cards
-  cardNumberInSpread: number; // 0-indexed card number being requested
-}
-
-export async function fetchReading(payload: CardRequestPayload): Promise<DrawnCard> {
-  const response = await fetch('/api/reading', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload), // Send the whole payload object
-  });
-  if (!response.ok) {
-    // Attempt to parse error details as JSON, fallback to text
-    let errorData = await response.text();
-    try { errorData = JSON.stringify(await response.json()); } catch (e) { /* ignore if not json */ }
-    console.error(`Backend error: ${response.status} - ${errorData}`);
-    throw new Error(`Failed to fetch tarot reading: ${response.status}`);
-  }
-  return response.json();
+  totalCardsInSpread: number;
+  cardNumberInSpread: number; // 0-indexed
 }
 
 export async function fetchCardText(payload: CardRequestPayload): Promise<{ id: string; text: string }> {
-  const response = await fetch('/api/reading/text', { // New endpoint
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-  if (!response.ok) {
-    let errorData = await response.text();
-    try { errorData = JSON.stringify(await response.json()); } catch (e) { /* ignore */ }
-    console.error(`Backend error (text): ${response.status} - ${errorData}`);
-    throw new Error(`Failed to fetch card text: ${response.status}`);
+  console.log('FETCH_SERVICE: Fetching card text with payload:', payload);
+  try {
+    const response = await fetch('/api/reading/text', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    console.log('FETCH_SERVICE: fetchCardText response status:', response.status, response.statusText);
+    const responseBodyText = await response.text(); // Get raw text first
+    console.log('FETCH_SERVICE: fetchCardText raw response body:', responseBodyText);
+
+    if (!response.ok) {
+      let errorData;
+      try {
+        errorData = JSON.parse(responseBodyText); // Try to parse as JSON
+      } catch (e) {
+        errorData = { message: responseBodyText || response.statusText };
+      }
+      console.error('FETCH_SERVICE: Error fetching card text:', errorData);
+      throw new Error(errorData.message || `Failed to fetch card text for card ${payload.cardNumberInSpread}`);
+    }
+    
+    const jsonData = JSON.parse(responseBodyText); // Now parse the text as JSON
+    console.log('FETCH_SERVICE: fetchCardText parsed JSON data:', jsonData);
+    return jsonData;
+
+  } catch (error) {
+    console.error('FETCH_SERVICE: Network or other error in fetchCardText:', error);
+    throw error instanceof Error ? error : new Error('An unexpected error occurred in fetchCardText');
   }
-  return response.json(); // Expects { id: "Actual_Card_ID", text: "..." }
 }
 
 export async function fetchCardImage(payload: CardRequestPayload): Promise<{ id: string; imageUrl: string }> {
-  const response = await fetch('/api/reading/image', { // New endpoint
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
-  if (!response.ok) {
-    let errorData = await response.text();
-    try { errorData = JSON.stringify(await response.json()); } catch (e) { /* ignore */ }
-    console.error(`Backend error (image): ${response.status} - ${errorData}`);
-    throw new Error(`Failed to fetch card image: ${response.status}`);
+  console.log('FETCH_SERVICE: Fetching card image with payload:', payload);
+  try {
+    const response = await fetch('/api/reading/image', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    console.log('FETCH_SERVICE: fetchCardImage response status:', response.status, response.statusText);
+    const responseBodyText = await response.text(); // Get raw text first
+    console.log('FETCH_SERVICE: fetchCardImage raw response body:', responseBodyText);
+
+    if (!response.ok) {
+      let errorData;
+      try {
+        errorData = JSON.parse(responseBodyText);
+      } catch (e) {
+        errorData = { message: responseBodyText || response.statusText };
+      }
+      console.error('FETCH_SERVICE: Error fetching card image:', errorData);
+      throw new Error(errorData.message || `Failed to fetch card image for card ${payload.cardNumberInSpread}`);
+    }
+
+    const fullJsonData: { id: string; imageUrl: string; text: string } = JSON.parse(responseBodyText); 
+    console.log('FETCH_SERVICE: fetchCardImage parsed full JSON data:', fullJsonData);
+    
+    // Explicitly return only id and imageUrl to match the Promise type
+    // and avoid accidentally overwriting text with an empty string from the backend's CardImageOut model.
+    const result = { id: fullJsonData.id, imageUrl: fullJsonData.imageUrl };
+    console.log('FETCH_SERVICE: fetchCardImage returning (id, imageUrl):', result);
+    return result;
+
+  } catch (error) {
+    console.error('FETCH_SERVICE: Network or other error in fetchCardImage:', error);
+    throw error instanceof Error ? error : new Error('An unexpected error occurred in fetchCardImage');
   }
-  return response.json(); // Expects { id: "Actual_Card_ID", imageUrl: "..." }
 }
