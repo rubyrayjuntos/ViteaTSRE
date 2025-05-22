@@ -1,14 +1,18 @@
 # Use a lightweight Node.js image
-FROM node:lts-alpine
+# Or your preferred Node.js LTS version
+FROM node:20-alpine
 
-# Set the working directory
+# Set the working directory inside the container
 WORKDIR /app
 
-# Copy package.json and package-lock.json
-COPY package*.json ./
+# Copy pnpm-lock.yaml and package.json first to leverage Docker's build cache
+COPY package.json pnpm-lock.yaml ./
 
-# Install all dependencies (including devDependencies)
-RUN npm install
+# --- ADDED STEP: Install pnpm globally within the container ---
+RUN npm install -g pnpm
+
+# Install pnpm dependencies
+RUN pnpm install --frozen-lockfile
 
 # Copy the rest of the application code
 COPY . .
@@ -17,4 +21,4 @@ COPY . .
 EXPOSE 5173
 
 # Start the Vite development server
-CMD ["npm", "run", "dev", "--", "--host"]
+CMD ["pnpm", "run", "dev", "--", "--host"]
