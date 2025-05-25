@@ -7,9 +7,8 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Debug: Print the contents of the .env file during build
-COPY .env .env
-RUN echo "Contents of .env file during build:" && cat .env
+# Set environment variables (replace with your actual variables)
+ENV OPENAI_API_KEY="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"
 
 # Copy the rest of the application code
 COPY . .

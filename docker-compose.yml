@@ -21,6 +21,7 @@ services:
       - "8000:8000"
     volumes:
       - ./backend:/app
-    env_file:
-      - ./backend/.env
-    command: ["sh", "-c", "echo OPENAI_API_KEY=$OPENAI_API_KEY && uvicorn main:app --host 0.0.0.0 --port 8000 --log-level debug"]
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}  # Corrected: Using environment
+    command: ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--log-level", "debug"] # Corrected: uvicorn command
+
