@@ -9,7 +9,7 @@ interface Props {
   size?: number;          // Size of the card (width in px)
 }
 
-export function TarotCard(...) { ... }
+export function TarotCard({ faceUrl, onFlipEnd, size = 150 }: Props) {
 
   const [isFlipped, setIsFlipped] = useState(false);
   const [imageHasLoaded, setImageHasLoaded] = useState(false);

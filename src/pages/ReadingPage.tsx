@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { TarotCard } from "../components/TarotCard";
-import { ChatBubble } from "../components/ChatBubble";
+import ChatBubble from "../components/ChatBubble";
 import { useTarotReading } from "../hooks/useTarotReading";
 
 export default function ReadingPage() {
