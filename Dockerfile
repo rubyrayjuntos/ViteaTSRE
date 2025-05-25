@@ -7,10 +7,11 @@ COPY package.json pnpm-lock.yaml ./
 
 RUN corepack enable && \
     corepack prepare pnpm@latest --activate && \
-ENV PATH="/usr/local/bin:$PATH"
+    export PATH="/usr/local/bin:$PATH"
+
 
 # Install pnpm dependencies
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --no-frozen-lockfile  
 
 # Copy the rest of the application code
 COPY . .

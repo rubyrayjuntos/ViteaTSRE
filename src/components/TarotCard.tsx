@@ -1,6 +1,6 @@
 // src/components/TarotCard.tsx
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { useState, useEffect } from 'react';
 import LoadingDots from './LoadingDots'; // Assuming LoadingDots is in the same components folder
 
 interface Props {
@@ -9,7 +9,8 @@ interface Props {
   size?: number;          // Size of the card (width in px)
 }
 
-export default function TarotCard({ faceUrl, onFlipEnd, size = 180 }: Props) {
+export function TarotCard(...) { ... }
+
   const [isFlipped, setIsFlipped] = useState(false);
   const [imageHasLoaded, setImageHasLoaded] = useState(false);
 
