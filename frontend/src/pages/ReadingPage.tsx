@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTarotStore } from '@/stores/useTarotStore';
 import { useTarotReading } from '@/hooks/useTarotReading';
-import TarotCard from '@/components/TarotCard';
+import { TarotCard } from '@/components/TarotCard';
 import ChatBubble from '@/components/ChatBubble';
 
 export default function ReadingPage() {
