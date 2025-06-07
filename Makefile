@@ -1,51 +1,91 @@
-# Variables
-DOCKER_COMPOSE = docker compose
+
+# ============================================================
+# Papi Chispa — Makefile for Local Dev + Render Deployment
+# ============================================================
+
+# ====================
+# GLOBAL VARIABLES
+# ====================
+FRONTEND_DIR = frontend
+BACKEND_DIR = backend
 FRONTEND_PORT = 5173
 BACKEND_PORT = 8000
 
-# Commands
-.PHONY: up down build frontend backend logs clean
+# ====================
+# PHONY TARGETS
+# ====================
+.PHONY: dev-backend dev-frontend dev-up dev-down \
+        build-frontend build-backend build-prod \
+        deploy-frontend deploy-backend deploy \
+        logs clean
 
-# Start both frontend and backend
-up:
-	$(DOCKER_COMPOSE) up
+# ====================
+# SECTION 1 — DEV SERVER (LOCAL)
+# Run locally in Cursor IDE or any dev environment
+# ====================
 
-# Start both frontend and backend with rebuild
-build-up:
-	$(DOCKER_COMPOSE) up --build
+# Start FastAPI backend locally (dev)
+dev-backend:
+	cd $(BACKEND_DIR) && \
+	python -m venv venv && \
+	source venv/bin/activate && \
+	pip install -r requirements.txt && \
+	uvicorn main:app --reload --port=$(BACKEND_PORT)
 
-# Stop all services
-down:
-	$(DOCKER_COMPOSE) down
+# Start Vite frontend locally (dev)
+dev-frontend:
+	cd $(FRONTEND_DIR) && \
+	corepack enable && \
+	pnpm install && \
+	pnpm run dev -- --host
 
-# Build the Docker images
-build:
-	$(DOCKER_COMPOSE) build
+# Start both (manual terminal split recommended)
+dev-up: dev-backend dev-frontend
 
-# Start only the frontend
-frontend:
-	$(DOCKER_COMPOSE) up --build frontend
+# Stop both (placeholder for future enhancements)
+dev-down:
+	echo "Stop servers manually in terminal or Cursor IDE."
 
-# Start only the backend
-backend:
-	$(DOCKER_COMPOSE) up --build backend
+# ====================
+# SECTION 2 — PROD SERVER (RENDER)
+# Deploy via Render CLI
+# ====================
 
-# Deploy frontend via Render CLI
-deploy-frontend:
+# Build frontend for production
+build-frontend:
+	cd $(FRONTEND_DIR) && \
+	corepack enable && \
+	pnpm install && \
+	pnpm run build
+
+# Prepare backend (lint/test/install)
+build-backend:
+	cd $(BACKEND_DIR) && \
+	pip install -r requirements.txt
+
+# Build all production assets
+build-prod: build-frontend build-backend
+
+# Deploy frontend to Render
+deploy-frontend: build-frontend
 	render deploy --service papi-chispa-frontend --from-render-yaml
 
-# Deploy backend via Render CLI
-deploy-backend:
+# Deploy backend to Render
+deploy-backend: build-backend
 	render deploy --service papi-chispa-backend --from-render-yaml
 
-# Deploy both from render.yaml
-deploy:
+# Deploy both frontend and backend to Render
+deploy: build-prod
 	render deploy --from-render-yaml
 
-# View logs for all services
-logs:
-	$(DOCKER_COMPOSE) logs -f
+# ====================
+# UTILITIES
+# ====================
 
-# Clean up Docker (remove containers, images, volumes)
+# Placeholder for Render logs (may be replaced with `render logs`)
+logs:
+	echo "Use Render dashboard or CLI to view logs."
+
+# Clean up local environments (future-proofing)
 clean:
-	docker system prune -af --volumes
+	rm -rf $(BACKEND_DIR)/venv $(FRONTEND_DIR)/node_modules
