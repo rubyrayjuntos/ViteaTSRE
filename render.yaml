@@ -1,0 +1,23 @@
+
+services:
+  - type: web
+    name: papi-chispa-frontend
+    env: static
+    rootDir: frontend
+    buildCommand: pnpm install && pnpm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_BACKEND_URL
+        value: https://papi-chispa-backend.onrender.com  # Update after backend deploy
+
+  - type: web
+    name: papi-chispa-backend
+    env: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port 10000
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: PORT
+        value: 10000
