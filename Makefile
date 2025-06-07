@@ -30,6 +30,18 @@ frontend:
 backend:
 	$(DOCKER_COMPOSE) up --build backend
 
+# Deploy frontend via Render CLI
+deploy-frontend:
+	render deploy --service papi-chispa-frontend --from-render-yaml
+
+# Deploy backend via Render CLI
+deploy-backend:
+	render deploy --service papi-chispa-backend --from-render-yaml
+
+# Deploy both from render.yaml
+deploy:
+	render deploy --from-render-yaml
+
 # View logs for all services
 logs:
 	$(DOCKER_COMPOSE) logs -f
