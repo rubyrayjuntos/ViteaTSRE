@@ -18,10 +18,10 @@ You've just stepped into the mystical experience of Cartas del Deseo — a fully
 
 🪄 Install Dependencies
 
-npm install
+pnpm install
 🔮 Start the Frontend
 
-npm run dev
+pnpm run dev
 🔥 Start the Backend
 
 uvicorn main:app --reload
