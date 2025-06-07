@@ -1,0 +1,17 @@
+
+# ====================
+# TESTING (STUBS)
+# ====================
+
+# Run backend tests (Python, pytest)
+test-backend:
+	cd backend && \
+	pytest || echo "TODO: Add real backend tests."
+
+# Run frontend tests (Vitest or Jest)
+test-frontend:
+	cd frontend && \
+	pnpm run test || echo "TODO: Add real frontend tests."
+
+# Run all tests
+test: test-backend test-frontend
