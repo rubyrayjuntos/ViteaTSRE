@@ -1,10 +1,10 @@
 // src/pages/ReadingPage.tsx
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useTarotStore } from '@/stores/useTarotStore';
-import { useTarotReading } from '@/hooks/useTarotReading';
-import TarotCard from '@/components/TarotCard';
-import ChatBubble from '@/components/ChatBubble';
+import { useTarotStore } from '../stores/useTarotStore';
+import { useTarotReading } from '../hooks/useTarotReading';
+import { TarotCard } from '../components/TarotCard';
+import ChatBubble from '../components/ChatBubble';
 
 export default function ReadingPage() {
   const navigate = useNavigate();
@@ -55,7 +55,7 @@ export default function ReadingPage() {
       const data = await res.json();
       setPapiResponse(data.text || 'Papi whispered, but no one heard...');
     } catch (err) {
-      setPapiResponse('Papi’s lips were sealed by static, try again 💔');
+      setPapiResponse("Papi's lips were sealed by static, try again 💔");
     } finally {
       setIsPapiLoading(false);
     }
@@ -103,8 +103,7 @@ export default function ReadingPage() {
             className="relative"
           >
             <TarotCard
-              faceUrl={card.imageUrl}
-              flipped={cardDisplayStates?.[index]?.flipAnimationCompleted || false}
+              faceUrl={cardDisplayStates?.[index]?.flipAnimationCompleted ? card.imageUrl : null}
               onFlipEnd={() => handleCardFlipCompleted(index)}
               size={180}
             />
@@ -114,7 +113,7 @@ export default function ReadingPage() {
               index < activeCardIndex &&
               card.text && (
                 <div className="absolute z-50 top-full left-1/2 -translate-x-1/2 bg-black bg-opacity-80 p-4 text-sm rounded-md mt-2 w-64 border border-pink-500 shadow-lg">
-                  <ChatBubble id={`hover-${index}`} imageUrl={card.imageUrl} text={card.text} />
+                  <ChatBubble id={`hover-${index}`} imageUrl={card.imageUrl || ''} text={card.text} />
                 </div>
               )}
           </div>
@@ -127,13 +126,13 @@ export default function ReadingPage() {
           <div className="w-full max-w-xl space-y-4">
             <ChatBubble
               id={cards[activeCardIndex].id}
-              imageUrl={cards[activeCardIndex].imageUrl}
+              imageUrl={cards[activeCardIndex].imageUrl || ''}
               text={cards[activeCardIndex].text}
             />
 
             {isPapiLoading && <p className="text-center text-sm">Papi is conjuring magic… ⏳</p>}
             {papiResponse && !isPapiLoading && (
-              <ChatBubble id="papi" imageUrl={null} text={papiResponse} />
+              <ChatBubble id="papi" imageUrl="" text={papiResponse} />
             )}
 
             <div className="flex gap-2">
