@@ -11,15 +11,27 @@ if (!process.env.VITE_BACKEND_URL) {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
+// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
   resolve: {
-    alias: [
-      { 
-        find: '@', 
-        replacement: path.resolve(__dirname, 'src') 
+    alias: {
+      '@': path.resolve(__dirname, 'src')
+    }
+  },
+  build: {
+    rollupOptions: {
+      external: [],
+      output: {
+        manualChunks: undefined
+      },
+      onwarn(warning, warn) {
+        if (warning.code === 'MODULE_LEVEL_DIRECTIVE') {
+          return
+        }
+        warn(warning)
       }
-    ]
+    }
   },
   server: {
     port: 5173,
@@ -31,15 +43,7 @@ export default defineConfig({
       },
     },
   },
-  build: {
-    sourcemap: true,
-    rollupOptions: {
-      input: {
-        main: path.resolve(__dirname, 'index.html')
-      }
-    }
-  },
   define: {
-    'process.env': {},
-  },
+    'process.env': {}
+  }
 })
