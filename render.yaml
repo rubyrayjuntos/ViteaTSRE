@@ -1,10 +1,9 @@
-
 services:
   - type: web
     name: papi-chispa-frontend
     env: static
     rootDir: frontend
-    buildCommand: pnpm install && pnpm run build
+    buildCommand: pnpm install --no-frozen-lockfile && pnpm run build
     staticPublishPath: dist
     envVars:
       - key: VITE_BACKEND_URL
