@@ -1,3 +1,51 @@
+# Dependencies
+node_modules
+/.pnp
+.pnp.js
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Production
+/build
+/dist
+dist-ssr
+*.local
+
+# Testing
+/coverage
+.coverage
+htmlcov/
+.tox/
+.nox/
+.pytest_cache/
+
+# Environment Variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+
 # Logs
 logs
 *.log
@@ -7,21 +55,60 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
-
 # Editor directories and files
+.idea
 .vscode/*
 !.vscode/extensions.json
-.idea
-.DS_Store
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-.vscode
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# TypeScript
+*.tsbuildinfo
+
+# Vite
+.vite/
+
+# Docker
+.docker/
+*.dockerfile
+docker-compose.override.yml
+
+# Deployment
 .vercel
-.env
+.netlify
+.firebase
+
+# Python Virtual Environment
+venv/
+.venv/
+ENV/
+
+# Cache
+.cache/
+.parcel-cache/
+.next/
+.nuxt/
+.temp/
+.docusaurus/
+
+# Local files that should stay local
+*.local
+local.*
+*.bak
+*.swp
+*.swo
