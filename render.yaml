@@ -7,16 +7,32 @@ services:
     staticPublishPath: dist
     envVars:
       - key: VITE_BACKEND_URL
-        value: https://papi-chispa-backend.onrender.com  # Update after backend deploy
+        value: https://viteatsre-backend.onrender.com
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache
 
   - type: web
     name: papi-chispa-backend
     env: python
     rootDir: backend
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:10000
+    startCommand: gunicorn main:app --workers 2 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT --timeout 120 --access-logfile - --error-logfile - --log-level info
     envVars:
       - key: OPENAI_API_KEY
         sync: false
       - key: PORT
-        value: 10000
+        value: 8000
+      - key: PYTHON_VERSION
+        value: 3.10.0
+      - key: CORS_ORIGINS
+        value: https://viteatsre-frontend.onrender.com
+    healthCheckPath: /
+    autoDeploy: true
+    scaling:
+      minInstances: 1
+      maxInstances: 1
+      targetMemoryPercent: 80
+    domains:
+      - viteatsre-backend.onrender.com

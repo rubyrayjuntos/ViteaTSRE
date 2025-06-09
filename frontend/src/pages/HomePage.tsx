@@ -1,7 +1,7 @@
 // src/pages/HomePage.tsx
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, useAnimationControls } from 'framer-motion';
 
 import NeonButton from '@/components/NeonButton';
 import { useTarotStore } from '@/stores/useTarotStore';
@@ -17,6 +17,11 @@ export default function HomePage() {
     setSpread,
     reset, // clears question + cards
   } = useTarotStore();
+
+  /** ------------------------------------------------------------------
+   * Animation controls
+   * -----------------------------------------------------------------*/
+  const rippleControls = useAnimationControls();
 
   /** ------------------------------------------------------------------
    * One‑time reset on page mount
@@ -44,6 +49,34 @@ export default function HomePage() {
    * -----------------------------------------------------------------*/
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-cyan-950 to-emerald-900 text-yellow-50 px-4">
+      {/* SVG Filter Definition */}
+      <svg className="hidden">
+        <defs>
+          <filter id="ripple">
+            <feTurbulence 
+              type="turbulence" 
+              baseFrequency="0.02 0.15" 
+              numOctaves="3" 
+              result="turbulence" 
+            >
+              <animate 
+                attributeName="baseFrequency" 
+                dur="30s" 
+                values="0.02 0.15;0.015 0.11;0.02 0.15" 
+                repeatCount="indefinite" 
+              />
+            </feTurbulence>
+            <feDisplacementMap 
+              in2="turbulence" 
+              in="SourceGraphic" 
+              scale="15" 
+              xChannelSelector="R" 
+              yChannelSelector="G"
+            />
+          </filter>
+        </defs>
+      </svg>
+
       <div className="grid md:grid-cols-2 gap-10 max-w-6xl">
         {/* Left column: copy & form */}
         <div className="flex flex-col gap-6">
@@ -89,14 +122,18 @@ export default function HomePage() {
         </div>
 
         {/* Right column: hero image */}
-        <motion.img
+        <motion.div
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.8 }}
-          src="/img/entrance-hero.png"
-          alt="Papi Chispa in water"
-          className="rounded-3xl border-4 border-brandGold shadow-2xl transition-all duration-500 hover:[filter:url('#ripple')]"
-        />
+          className="relative overflow-hidden rounded-3xl border-4 border-brandGold shadow-2xl"
+        >
+          <motion.img
+            src="/img/entrance-hero.png"
+            alt="Papi Chispa in water"
+            className="w-full h-full object-cover transition-all duration-500 hover:[filter:url('#ripple')]"
+          />
+        </motion.div>
       </div>
     </div>
   );

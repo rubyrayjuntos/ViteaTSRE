@@ -3,6 +3,7 @@ import os
 import asyncio
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from openai import AsyncOpenAI, OpenAIError
 from random import sample
@@ -14,7 +15,7 @@ import logging
 import traceback
 
 # Configure basic logging
-logging.basicConfig(level=logging.DEBUG) # Set to DEBUG to see more details
+logging.basicConfig(level=logging.INFO)  # Changed to INFO for production
 
 # Load environment variables from .env file
 load_dotenv()
@@ -23,19 +24,32 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 if not OPENAI_API_KEY:
     logging.error("OPENAI_API_KEY not found in environment variables.")
     raise ValueError("OPENAI_API_KEY not found in environment variables.")
-else:
-    logging.debug(f"OPENAI_API_KEY loaded: {OPENAI_API_KEY[:10]}...") # Log a portion for confirmation
 
 if not TAROT_CARDS or len(TAROT_CARDS) < 2:
     logging.error("TAROT_CARDS not loaded or insufficient cards in deck.py.")
     raise ValueError("TAROT_CARDS not loaded or insufficient cards in deck.py.")
-
 
 # Initialize OpenAI client
 client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
 # Initialize FastAPI app
 app = FastAPI(title="Papi Chispa API")
+
+# Configure CORS
+origins = [
+    "http://localhost:5173",  # Vite dev server
+    "http://localhost:4173",  # Vite preview
+    "http://localhost:3000",  # Alternative local development
+    "https://viteatsre-frontend.onrender.com",  # Production frontend
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # --- Base Directory Setup ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -51,10 +65,37 @@ GPT_MODEL = "gpt-4" # or "gpt-3.5-turbo"
 chosen_readings_cache: dict[Tuple[str, int], List[str]] = {}
 
 
-# --- Basic Endpoints ---
+# --- API Health and Status Endpoints ---
 @app.get("/")
 async def read_root():
-    return {"message": "Welcome to Papi Chispa's Tarot API, mi amor! Ask me anything..."}
+    """Root endpoint that includes health check information"""
+    try:
+        # Test OpenAI connection with a minimal API call
+        await client.chat.completions.create(
+            messages=[{"role": "user", "content": "test"}],
+            model="gpt-3.5-turbo",
+            max_tokens=5
+        )
+        return {
+            "message": "Welcome to Papi Chispa's Tarot API, mi amor! Ask me anything...",
+            "status": "healthy",
+            "openai_connection": "ok"
+        }
+    except OpenAIError as e:
+        logging.error(f"OpenAI API test failed: {str(e)}")
+        return {
+            "message": "Welcome to Papi Chispa's Tarot API, mi amor! But ay caramba, the spirits are not connecting!",
+            "status": "unhealthy",
+            "openai_connection": "failed",
+            "error": str(e)
+        }
+    except Exception as e:
+        logging.error(f"Unexpected error in health check: {str(e)}")
+        return {
+            "message": "Welcome to Papi Chispa's Tarot API, mi amor! But something mysterious is happening...",
+            "status": "error",
+            "error": "Internal server error"
+        }
 
 # Serve favicon.ico
 @app.get("/favicon.ico", include_in_schema=False)
