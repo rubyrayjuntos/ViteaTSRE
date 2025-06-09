@@ -36,22 +36,18 @@ client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 app = FastAPI(title="Papi Chispa API")
 
 # Configure CORS
-origins = [
-    "http://localhost:5173",  # Vite dev server
-    "http://localhost:4173",  # Vite preview
-    "http://localhost:3000",  # Alternative local development
-    "https://papi-chispa-frontend.onrender.com",  # Production frontend
-    "https://viteatsre-frontend.onrender.com",    # Alternative production frontend URL
-]
+origins = os.getenv("ALLOWED_ORIGINS", "").split(",")
+if not origins or (len(origins) == 1 and not origins[0]):  # If no origins set, allow all in development
+    origins = ["*"]
+
+logging.info(f"Configuring CORS with allowed origins: {origins}")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=origins if "*" not in origins else ["*"],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["*"],
-    max_age=3600,
 )
 
 # --- Base Directory Setup ---

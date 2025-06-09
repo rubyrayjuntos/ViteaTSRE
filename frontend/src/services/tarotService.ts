@@ -1,7 +1,8 @@
 // /workspaces/ViteaTSRE/src/services/tarotService.ts
+/// <reference types="vite/client" />
 import { type DrawnCard } from "@/stores/useTarotStore";
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+const BACKEND_URL = ((import.meta as any).env?.VITE_BACKEND_URL as string) || 'http://localhost:8000';
 
 export interface CardRequestPayload {
   question: string;
@@ -9,12 +10,20 @@ export interface CardRequestPayload {
   cardNumberInSpread: number; // 0-indexed
 }
 
+const fetchOptions = {
+  headers: { 
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  },
+  mode: 'cors' as RequestMode,
+};
+
 export async function fetchCardText(payload: CardRequestPayload): Promise<{ id: string; text: string }> {
   console.log('FETCH_SERVICE: Fetching card text with payload:', payload);
   try {
     const response = await fetch(`${BACKEND_URL}/api/reading/text`, {
+      ...fetchOptions,
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
     console.log('FETCH_SERVICE: fetchCardText response status:', response.status, response.statusText);
@@ -46,8 +55,8 @@ export async function fetchCardImage(payload: CardRequestPayload): Promise<{ id:
   console.log('FETCH_SERVICE: Fetching card image with payload:', payload);
   try {
     const response = await fetch(`${BACKEND_URL}/api/reading/image`, {
+      ...fetchOptions,
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
     console.log('FETCH_SERVICE: fetchCardImage response status:', response.status, response.statusText);

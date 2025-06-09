@@ -27,23 +27,17 @@ services:
       - key: PYTHON_VERSION
         value: 3.10.0
       - key: ALLOWED_ORIGINS
-        value: https://papi-chispa-frontend.onrender.com,https://viteatsre-frontend.onrender.com
+        value: https://papi-chispa-frontend.onrender.com
     headers:
       - path: /*
         name: Access-Control-Allow-Origin
         value: https://papi-chispa-frontend.onrender.com
       - path: /*
         name: Access-Control-Allow-Methods
-        value: GET, POST, OPTIONS
+        value: "*"
       - path: /*
         name: Access-Control-Allow-Headers
         value: "*"
-      - path: /*
-        name: Access-Control-Allow-Credentials
-        value: "true"
-      - path: /*
-        name: Access-Control-Max-Age
-        value: "3600"
     healthCheckPath: /
     autoDeploy: true
     scaling:
