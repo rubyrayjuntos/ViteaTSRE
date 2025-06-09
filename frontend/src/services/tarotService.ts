@@ -1,6 +1,8 @@
 // /workspaces/ViteaTSRE/src/services/tarotService.ts
 import { type DrawnCard } from "@/stores/useTarotStore";
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+
 export interface CardRequestPayload {
   question: string;
   totalCardsInSpread: number;
@@ -10,7 +12,7 @@ export interface CardRequestPayload {
 export async function fetchCardText(payload: CardRequestPayload): Promise<{ id: string; text: string }> {
   console.log('FETCH_SERVICE: Fetching card text with payload:', payload);
   try {
-    const response = await fetch('/api/reading/text', {
+    const response = await fetch(`${BACKEND_URL}/api/reading/text`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -43,7 +45,7 @@ export async function fetchCardText(payload: CardRequestPayload): Promise<{ id: 
 export async function fetchCardImage(payload: CardRequestPayload): Promise<{ id: string; imageUrl: string }> {
   console.log('FETCH_SERVICE: Fetching card image with payload:', payload);
   try {
-    const response = await fetch('/api/reading/image', {
+    const response = await fetch(`${BACKEND_URL}/api/reading/image`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
