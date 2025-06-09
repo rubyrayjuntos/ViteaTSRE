@@ -40,15 +40,18 @@ origins = [
     "http://localhost:5173",  # Vite dev server
     "http://localhost:4173",  # Vite preview
     "http://localhost:3000",  # Alternative local development
-    "https://viteatsre-frontend.onrender.com",  # Production frontend
+    "https://papi-chispa-frontend.onrender.com",  # Production frontend
+    "https://viteatsre-frontend.onrender.com",    # Alternative production frontend URL
 ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=3600,
 )
 
 # --- Base Directory Setup ---
