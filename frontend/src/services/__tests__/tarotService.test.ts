@@ -86,7 +86,7 @@ vi.useRealTimers();
 
     it('should handle timeout', async () => {
       vi.useFakeTimers();
-      (global.fetch as vi.Mock).mockImplementationOnce(
+(global.fetch as vi.Mock).mockImplementationOnce(
         () => new Promise((resolve) => setTimeout(resolve, 31000))
       );
 
