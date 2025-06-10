@@ -5,7 +5,7 @@ import { mockApiResponses, mockFetchResponse, mockFetchError } from '../../test/
 describe('tarotService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    global.fetch = vi.fn();
+global.fetch = vi.fn();
   });
 
   describe('fetchCardText', () => {
