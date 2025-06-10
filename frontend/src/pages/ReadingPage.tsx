@@ -6,6 +6,8 @@ import { useTarotReading } from '../hooks/useTarotReading';
 import { TarotCard } from '../components/TarotCard';
 import ChatBubble from '../components/ChatBubble';
 
+const BACKEND_URL = ((import.meta as any).env?.VITE_BACKEND_URL as string) || 'http://localhost:8000';
+
 export default function ReadingPage() {
   const navigate = useNavigate();
   const {
@@ -46,15 +48,38 @@ export default function ReadingPage() {
     setPapiResponse('');
 
     try {
-      const res = await fetch('/api/chat', {
+      console.log('CHAT_SERVICE: Sending chat request:', { question: userInput, card_id: card.id });
+      const res = await fetch(`${BACKEND_URL}/api/chat`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        mode: 'cors',
         body: JSON.stringify({ question: userInput, card_id: card.id }),
       });
 
-      const data = await res.json();
+      console.log('CHAT_SERVICE: Chat response status:', res.status, res.statusText);
+      const responseBodyText = await res.text(); // Get raw text first
+      console.log('CHAT_SERVICE: Chat raw response body:', responseBodyText);
+
+      if (!res.ok) {
+        let errorData;
+        try {
+          errorData = JSON.parse(responseBodyText);
+        } catch (e) {
+          errorData = { message: responseBodyText || res.statusText };
+        }
+        console.error('CHAT_SERVICE: Error in chat response:', errorData);
+        setPapiResponse(errorData.message || `Papi's words are lost in static... (Error ${res.status})`);
+        return;
+      }
+
+      const data = JSON.parse(responseBodyText);
+      console.log('CHAT_SERVICE: Chat parsed response:', data);
       setPapiResponse(data.text || 'Papi whispered, but no one heard...');
     } catch (err) {
+      console.error('CHAT_SERVICE: Error in chat request:', err);
       setPapiResponse("Papi's lips were sealed by static, try again 💔");
     } finally {
       setIsPapiLoading(false);
