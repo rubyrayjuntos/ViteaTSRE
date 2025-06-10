@@ -28,7 +28,7 @@ describe('TarotCard', () => {
       />
     );
 
-    const image = screen.getByAltText('The Fool Tarot Card');
+    const image = screen.getByAltText('the-fool Tarot Card');
     expect(image).toBeInTheDocument();
     expect(image).toHaveAttribute('src', mockCard.imageUrl);
   });
@@ -57,7 +57,8 @@ describe('TarotCard', () => {
     );
 
     const card = screen.getByRole('button');
-    expect(card).toHaveClass('active');
+    expect(card).toHaveClass('ring-2');
+    expect(card).toHaveClass('ring-primary');
   });
 
   it('should render error state', () => {
