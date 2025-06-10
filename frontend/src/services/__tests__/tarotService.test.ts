@@ -54,7 +54,7 @@ vi.useRealTimers();
       );
 
       const promise = fetchCardText(0, 'What lies ahead?');
-      vi.advanceTimersByTime(3000);
+vi.advanceTimersByTime(3000);
       await expect(promise).rejects.toThrow('Server error');
       expect(global.fetch).toHaveBeenCalledTimes(3); // Initial + 2 retries
       vi.useRealTimers();
