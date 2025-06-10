@@ -1,19 +1,48 @@
 # /workspaces/ViteaTSRE/backend/main.py
 import os
 import asyncio
-from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from openai import AsyncOpenAI, OpenAIError
-from random import sample
-from typing import List, Tuple
-from papi_config import PAPI_PERSONA, get_image_prompt_style, get_chat_system_prompt
-
-from deck import TAROT_CARDS # Assuming deck.py is in the same directory
-
 import logging
 import traceback
+from dotenv import load_dotenv
+from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
+from pydantic import BaseModel, Field
+from openai import AsyncOpenAI, OpenAIError
+from random import sample
+from typing import List, Tuple, Dict, Optional, Any, Union
+from papi_config import PAPI_PERSONA, get_image_prompt_style, get_chat_system_prompt
+
+class TarotError(HTTPException):
+    """Base exception for Tarot-related errors."""
+    def __init__(self, detail: str, status_code: int = 400):
+        super().__init__(status_code=status_code, detail=detail)
+
+class CardNotFoundError(TarotError):
+    """Raised when a requested card is not found."""
+    def __init__(self, card_id: str):
+        super().__init__(
+            detail=f"Ay caramba! The card '{card_id}' has vanished into the mists...",
+            status_code=404
+        )
+
+class SpreadSizeError(TarotError):
+    """Raised when the spread size is invalid."""
+    def __init__(self, requested: int, maximum: int):
+        super().__init__(
+            detail=f"Mi amor, I can only draw {maximum} cards at once, not {requested}. The spirits have their limits.",
+            status_code=400
+        )
+
+class OpenAIServiceError(TarotError):
+    """Raised when there's an issue with OpenAI services."""
+    def __init__(self, operation: str):
+        super().__init__(
+            detail=f"Ay, the spirits are being temperamental with the {operation}. Try again in a moment, mi cielo.",
+            status_code=503
+        )
+
+from deck import TAROT_CARDS # Assuming deck.py is in the same directory
 
 # Configure basic logging
 logging.basicConfig(level=logging.INFO)  # Changed to INFO for production
@@ -111,37 +140,69 @@ async def favicon():
 
 # --- Pydantic Models for Request and Response Validation ---
 class ReadingReq(BaseModel):
-    question: str
-    spread: int # Number of cards
+    question: str = Field(..., min_length=1, description="The seeker's question for the reading")
+    spread: int = Field(..., ge=1, le=6, description="Number of cards to draw (1-6)")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "question": "What does my heart truly desire?",
+                "spread": 3
+            }
+        }
 
 class ChatReq(BaseModel):
-    question: str
-    card_id: str
+    question: str = Field(..., min_length=1, description="The seeker's follow-up question")
+    card_id: str = Field(..., min_length=1, description="The ID of the card being discussed")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "question": "What does this card suggest about my career?",
+                "card_id": "THE_LOVERS"
+            }
+        }
 
 class IndividualCardDataReq(BaseModel):
-    question: str
-    totalCardsInSpread: int
-    cardNumberInSpread: int # 0-indexed
+    question: str = Field(..., min_length=1, description="The original reading question")
+    totalCardsInSpread: int = Field(..., ge=1, le=6, description="Total number of cards in the spread")
+    cardNumberInSpread: int = Field(..., ge=0, description="Zero-based index of this card in the spread")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "question": "What path should I take?",
+                "totalCardsInSpread": 3,
+                "cardNumberInSpread": 0
+            }
+        }
 
 class CardOut(BaseModel):
-    name: str
-    imageUrl: str
-    text: str
+    id: str = Field(..., description="The unique identifier of the card")
+    imageUrl: str = Field(..., description="URL to the card's generated image")
+    text: str = Field(..., description="Papi's interpretation of the card")
 
 class CardTextOut(BaseModel):
-    id: str # Card name
-    text: str
+    id: str = Field(..., description="The unique identifier of the card")
+    text: str = Field(..., description="Papi's interpretation of the card")
 
 class CardImageOut(BaseModel):
-    id: str # Card name
-    imageUrl: str
-    text: str # Keep structure consistent, even if empty for this specific endpoint
+    id: str = Field(..., description="The unique identifier of the card")
+    imageUrl: str = Field(..., description="URL to the card's generated image")
+    text: str = Field("", description="Optional text context for the image")
 
 class ReadingOut(BaseModel):
-    cards: List[CardOut]
+    cards: List[CardOut] = Field(..., description="List of cards in the reading")
 
 class CardReq(BaseModel):
-    card_id: str
+    card_id: str = Field(..., min_length=1, description="The ID of the card to generate an image for")
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "card_id": "THE_HIGH_PRIESTESS"
+            }
+        }
 
 
 # --- Helper function to get or sample cards for a reading ---
@@ -264,38 +325,94 @@ async def create_reading(req: ReadingReq):
     return ReadingOut(cards=results)
 
 
-@app.post("/api/reading/text", response_model=CardTextOut)
-async def get_card_text(req: IndividualCardDataReq):
-    logging.info(f"Request for text for card: (Index: {req.cardNumberInSpread}) for question: '{req.question}'")
-    chosen_card_names = get_chosen_cards_for_reading(req.question, req.totalCardsInSpread)
-    
-    if not (0 <= req.cardNumberInSpread < len(chosen_card_names)):
-        logging.error(f"Invalid card index {req.cardNumberInSpread} for chosen cards: {chosen_card_names}")
-        raise HTTPException(status_code=404, detail=f"Card not found for index {req.cardNumberInSpread} in a spread of {req.totalCardsInSpread} for the given question.")
-    
-    card_name = chosen_card_names[req.cardNumberInSpread]
-    text_content = await generate_text_for_card(
-        card_name, req.question, req.totalCardsInSpread, req.cardNumberInSpread
-    )
-    response_data = CardTextOut(id=card_name, text=text_content)
-    logging.info(f"Returning for /api/reading/text (card: {card_name}): {response_data.model_dump_json()}")
-    return response_data
+@app.post("/api/reading/text")
+async def get_reading(request: Request):
+    """Generate a tarot reading with enhanced error handling."""
+    try:
+        data = await request.json()
+        num_cards = data.get("num_cards", 3)
+        question = data.get("question", "")
+
+        if not isinstance(num_cards, int):
+            raise TarotError("Mi amor, I need a valid number of cards to draw.")
+        
+        if num_cards <= 0:
+            raise SpreadSizeError("I cannot do a reading with no cards, mi cielo.")
+        
+        if num_cards > 10:
+            raise SpreadSizeError(f"Ten cards is my limit for a clear reading, mi amor. You asked for {num_cards}.")
+
+        try:
+            # Get randomly chosen cards for the reading
+            chosen_cards = get_chosen_cards_for_reading(question, num_cards)
+            
+            # Generate text for each card
+            card_texts = []
+            for card in chosen_cards:
+                try:
+                    text = await generate_text_for_card(card, question, num_cards, chosen_cards.index(card))
+                    card_texts.append({"card": card, "text": text})
+                except OpenAIError as e:
+                    logging.error(f"OpenAI API error generating text for card {card}: {str(e)}")
+                    raise OpenAIServiceError(f"reading for card {card}")
+
+            return {"cards": card_texts}
+
+        except OpenAIError as e:
+            logging.error(f"OpenAI API error in reading: {str(e)}")
+            raise OpenAIServiceError("reading")
+
+    except TarotError as e:
+        # Already formatted with Papi's voice
+        raise e
+    except Exception as e:
+        logging.error(f"Unexpected error in reading endpoint: {str(e)}")
+        raise TarotError(
+            "Ay caramba! The cards are being mysterious. Let's try again, mi amor.",
+            status_code=500
+        )
 
 
-@app.post("/api/reading/image", response_model=CardImageOut)
-async def get_card_image(req: IndividualCardDataReq):
-    logging.info(f"Request for image for card: (Index: {req.cardNumberInSpread}) for question: '{req.question}'")
-    chosen_card_names = get_chosen_cards_for_reading(req.question, req.totalCardsInSpread)
+@app.post("/api/reading/image")
+async def get_card_image(request: Request):
+    """Generate an image for a card with enhanced error handling."""
+    try:
+        data = await request.json()
+        card_name = data.get("card")
+        
+        if not card_name:
+            raise TarotError("Mi amor, I need to know which card to visualize for you.")
 
-    if not (0 <= req.cardNumberInSpread < len(chosen_card_names)):
-        logging.error(f"Invalid card index {req.cardNumberInSpread} for chosen cards: {chosen_card_names}")
-        raise HTTPException(status_code=404, detail=f"Card not found for index {req.cardNumberInSpread} in a spread of {req.totalCardsInSpread} for the given question.")
+        if card_name not in [card.strip() for card in TAROT_CARDS]:
+            raise CardNotFoundError(card_name)
 
-    card_name = chosen_card_names[req.cardNumberInSpread]
-    image_url_content = await generate_image_for_card(card_name)
-    response_data = CardImageOut(id=card_name, imageUrl=image_url_content, text="") # text is empty as per model
-    logging.info(f"Returning for /api/reading/image (card: {card_name}): {response_data.model_dump_json()}")
-    return response_data
+        try:
+            # Generate image using DALL-E
+            response = await client.images.generate(
+                model="dall-e-3",
+                prompt=generate_image_prompt(card_name),
+                n=1,
+                size="1024x1024"
+            )
+
+            if not response.data or not response.data[0].url:
+                raise OpenAIServiceError("image generation")
+
+            return {"url": response.data[0].url}
+
+        except OpenAIError as e:
+            logging.error(f"OpenAI API error generating image for card {card_name}: {str(e)}")
+            raise OpenAIServiceError(f"image for {card_name}")
+
+    except TarotError as e:
+        # Already formatted with Papi's voice
+        raise e
+    except Exception as e:
+        logging.error(f"Unexpected error in image generation endpoint: {str(e)}")
+        raise TarotError(
+            "Ay, the spirits are having trouble painting this vision. Let's try again, mi amor.",
+            status_code=500
+        )
 
 if __name__ == "__main__":
     import uvicorn
@@ -319,6 +436,7 @@ if __name__ == "__main__":
 
 @app.post("/api/chat")
 async def chat(request: Request):
+    """Handle chat interactions with enhanced error handling and Papi's personality."""
     try:
         data = await request.json()
         question = data.get("question")
@@ -326,8 +444,13 @@ async def chat(request: Request):
         previous_cards = data.get("previous_cards", [])
         chat_history = data.get("chat_history", [])
 
-        if not question or not current_card_id:
-            raise HTTPException(status_code=400, detail="Missing required fields")
+        if not question:
+            raise TarotError("Mi amor, I need your question to channel the spirits.")
+        if not current_card_id:
+            raise TarotError("Which card are we discussing, mi cielo?")
+
+        if current_card_id not in [card.strip() for card in TAROT_CARDS]:
+            raise CardNotFoundError(current_card_id)
 
         # Format the context for the AI
         context = f"""{get_chat_system_prompt()}
@@ -350,24 +473,38 @@ Respond as Papi Chispa, considering:
 
 Keep your response focused primarily on the current card but weave in connections to previous cards when relevant."""
 
-        # Call OpenAI API with the enhanced context
-        response = await client.chat.completions.create(
-            model=GPT_MODEL,
-            messages=[
-                {"role": "system", "content": context},
-                {"role": "user", "content": question}
-            ],
-            temperature=0.7,
-            max_tokens=300
+        try:
+            # Call OpenAI API with the enhanced context
+            response = await client.chat.completions.create(
+                model=GPT_MODEL,
+                messages=[
+                    {"role": "system", "content": context},
+                    {"role": "user", "content": question}
+                ],
+                temperature=0.7,
+                max_tokens=300
+            )
+
+            if not response.choices or not response.choices[0].message:
+                raise OpenAIServiceError("chat response")
+
+            return {"text": response.choices[0].message.content}
+
+        except OpenAIError as e:
+            logging.error(f"OpenAI API error in chat: {str(e)}")
+            raise OpenAIServiceError("chat response")
+
+    except TarotError as e:
+        # Already formatted with Papi's voice
+        raise e
+    except Exception as e:
+        logging.error(f"Unexpected error in chat endpoint: {str(e)}")
+        raise TarotError(
+            "Ay, something mysterious is blocking our connection. Try again, mi amor.",
+            status_code=500
         )
 
-        return {"text": response.choices[0].message.content}
-
-    except Exception as e:
-        logging.error(f"Error in chat endpoint: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-def format_previous_cards(cards):
+def format_previous_cards(cards: List[Dict[str, str]]) -> str:
     if not cards:
         return "No previous cards drawn."
     
@@ -377,7 +514,7 @@ def format_previous_cards(cards):
     
     return "\n".join(formatted)
 
-def format_chat_history(history):
+def format_chat_history(history: List[Dict[str, str]]) -> str:
     if not history:
         return "No previous conversation."
     

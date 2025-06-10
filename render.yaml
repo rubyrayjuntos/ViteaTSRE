@@ -28,16 +28,23 @@ services:
         value: 3.10.0
       - key: ALLOWED_ORIGINS
         value: https://papi-chispa-frontend.onrender.com
+      - key: GPT_MODEL
+        value: gpt-3.5-turbo
+      - key: DALL_E_MODEL
+        value: dall-e-3
     headers:
       - path: /*
         name: Access-Control-Allow-Origin
         value: https://papi-chispa-frontend.onrender.com
       - path: /*
         name: Access-Control-Allow-Methods
-        value: "*"
+        value: "GET, POST, OPTIONS"
       - path: /*
         name: Access-Control-Allow-Headers
-        value: "*"
+        value: "Content-Type, Accept"
+      - path: /*
+        name: Access-Control-Allow-Credentials
+        value: "true"
     healthCheckPath: /
     autoDeploy: true
     scaling:
