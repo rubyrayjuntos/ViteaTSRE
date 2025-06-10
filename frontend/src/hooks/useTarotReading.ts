@@ -1,86 +1,71 @@
-import { useMutation } from "@tanstack/react-query";
-import { useTarotStore } from "@/stores/useTarotStore";
-// Removed unused imports
-import { useEffect, useRef, useMemo } from "react";
-import { fetchCardText, fetchCardImage, type CardRequestPayload } from "@/services/tarotService";
+import { useEffect } from 'react';
+import { fetchCardText, fetchCardImage } from '../services/tarotService';
+import { useTarotStore } from '../stores/useTarotStore';
 
-export function useTarotReading() {
-  const { question, spread, initializeSpread, updateCardData } = useTarotStore();
-  const computedSpreadSize = useMemo(() => {
-    return spread === 'Destiny' ? 3 : spread === 'Cruz' ? 4 : 2;
-  }, [spread]);
-  const hasRun = useRef(false);
-
-  const mutation = useMutation({
-    mutationFn: async () => {
-      initializeSpread(computedSpreadSize); // Create placeholder cards in the store
-      const errors: Error[] = [];
-
-      // Process each card's data (text and image) independently
-      const processCard = async (index: number) => {
-        console.log(`READING_HOOK: Starting to process card ${index}`);
-        
-        try {
-          const payload: CardRequestPayload = {
-            question,
-            totalCardsInSpread: computedSpreadSize,
-            cardNumberInSpread: index
-          };
-
-          // Fetch text and image in parallel for this specific card
-          const [textResponse, imageResponse] = await Promise.all([
-            fetchCardText(payload).catch(error => {
-              console.error(`Error fetching text for card ${index}:`, error);
-              errors.push(error);
-              return { id: `ERROR_${index}`, text: "Papi couldn't channel the message for this card, mi amor..." };
-            }),
-            fetchCardImage(payload).catch(error => {
-              console.error(`Error fetching image for card ${index}:`, error);
-              errors.push(error);
-              return { id: `ERROR_${index}`, imageUrl: "" };
-            })
-          ]);
-
-          // Update the store with this card's data as soon as we have it
-          updateCardData(index, {
-            id: textResponse.id,
-            text: textResponse.text,
-            imageUrl: imageResponse.imageUrl
-          });
-
-          console.log(`READING_HOOK: Successfully processed card ${index}`);
-        } catch (error) {
-          console.error(`READING_HOOK: Error processing card ${index}:`, error);
-          if (error instanceof Error) errors.push(error);
-          updateCardData(index, {
-            text: "Ay caramba! Something went wrong with this card...",
-            imageUrl: ""
-          });
-        }
-      };
-
-      // Process cards sequentially, but handle each card's text and image in parallel
-      for (let i = 0; i < computedSpreadSize; i++) {
-        await processCard(i);
-      }
-
-      if (errors.length > 0) {
-        console.warn(`READING_HOOK: Completed with ${errors.length} errors`);
-        // We don't throw here to allow partial success
-      }
-    }
-  });
+export const useTarotReading = (cardIndex: number) => {
+  const { 
+    cards,
+    cardDisplayStates,
+    updateCardData,
+    question
+  } = useTarotStore();
 
   useEffect(() => {
-    if (hasRun.current) return;
-    hasRun.current = true;
-    mutation.mutate();
-  }, [mutation]);
+    const loadCardData = async () => {
+      try {
+        // Skip if we don't have a valid card index
+        if (cardIndex >= cards.length) {
+          console.warn(`Attempted to load data for invalid card index ${cardIndex}`);
+          return;
+        }
+
+        // Skip if we already have all the data
+        if (cardDisplayStates[cardIndex]?.hasLoadedText && 
+            cardDisplayStates[cardIndex]?.hasLoadedImage) {
+          return;
+        }
+
+        console.log(`Loading data for card ${cardIndex}`);
+
+        // Fetch card text first
+        if (!cardDisplayStates[cardIndex]?.hasLoadedText) {
+          try {
+            const textResponse = await fetchCardText(cardIndex, question);
+            console.log(`Received text response for card ${cardIndex}:`, textResponse);
+            
+            // Update the card with text and ID
+            updateCardData(cardIndex, {
+              text: textResponse.text,
+              id: textResponse.id
+            });
+
+            // Now fetch the image using the card ID
+            try {
+              const imageUrl = await fetchCardImage(textResponse.id);
+              console.log(`Received image URL for card ${cardIndex}:`, imageUrl);
+              updateCardData(cardIndex, { imageUrl });
+            } catch (imageError) {
+              console.error(`Failed to fetch image for card ${cardIndex}:`, imageError);
+              // Don't rethrow - we want to keep the text even if image fails
+            }
+          } catch (textError) {
+            console.error(`Failed to fetch text for card ${cardIndex}:`, textError);
+            throw textError; // Rethrow as this is a critical error
+          }
+        }
+      } catch (error) {
+        console.error(`Error loading data for card ${cardIndex}:`, error);
+        // Could update store with error state here if needed
+      }
+    };
+
+    loadCardData();
+  }, [cardIndex, cards.length, cardDisplayStates, updateCardData, question]);
 
   return {
-    isFetching: mutation.isPending,
-    isSuccess: mutation.isSuccess,
-    isError: mutation.isError,
-    error: mutation.error,
+    card: cards[cardIndex],
+    isLoading: cardDisplayStates[cardIndex]?.isLoading ?? true,
+    hasLoadedText: cardDisplayStates[cardIndex]?.hasLoadedText ?? false,
+    hasLoadedImage: cardDisplayStates[cardIndex]?.hasLoadedImage ?? false
   };
-}
+};

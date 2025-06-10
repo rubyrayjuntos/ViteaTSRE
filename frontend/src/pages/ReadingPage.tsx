@@ -1,233 +1,212 @@
 // src/pages/ReadingPage.tsx
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTarotStore } from '../stores/useTarotStore';
 import { useTarotReading } from '../hooks/useTarotReading';
-import { useChatStore } from '../stores/useChatStore';
-import { sendChatMessage } from '../services/chatService';
+import { LoadingDots } from '../components/LoadingDots';
 import { TarotCard } from '../components/TarotCard';
-import ChatBubble from '../components/ChatBubble';
-import LoadingDots from '../components/LoadingDots';
+import { ChatBubble } from '../components/ChatBubble';
+import { env } from '../env';
 
-const BACKEND_URL = ((import.meta as any).env?.VITE_BACKEND_URL as string) || 'http://localhost:8000';
+interface ChatResponse {
+  response: string;
+}
 
-export default function ReadingPage() {
+export const ReadingPage: React.FC = () => {
   const navigate = useNavigate();
-  const {
-    cards,
-    cardDisplayStates,
-    spreadSize,
-    updateCardDisplayState,
-    question,
-    reset: resetTarot,
-    isInitializing,
-  } = useTarotStore();
-
-  const { isFetching } = useTarotReading();
-
-  const {
-    messages,
-    addMessage,
-    reset: resetChat,
-  } = useChatStore();
-
-  const [activeCardIndex, setActiveCardIndex] = useState(0);
   const [userInput, setUserInput] = useState('');
-  const [papiResponse, setPapiResponse] = useState('');
+  const [activeCardIndex, setActiveCardIndex] = useState(0);
   const [isPapiLoading, setIsPapiLoading] = useState(false);
-  const [hoverCardIndex, setHoverCardIndex] = useState<number | null>(null);
+  const { cards, cardDisplayStates, isInitializing, spreadSize, messages, addMessage } = useTarotStore();
 
-  useEffect(() => {
-    if (cardDisplayStates?.[0] && !cardDisplayStates[0].flipAnimationCompleted) {
-      updateCardDisplayState(0, { flipAnimationCompleted: true });
-    }
-  }, [cardDisplayStates, updateCardDisplayState]);
-
-  const handleCardFlipCompleted = (index: number) => {
-    updateCardDisplayState(index, { flipAnimationCompleted: true });
-  };
+  // Create an array of indices for the spread
+  const cardIndices = Array.from({ length: spreadSize }, (_, i) => i);
 
   const handleAskPapi = async () => {
-    const currentCard = cards[activeCardIndex];
-    if (!currentCard || !currentCard.id || !userInput.trim()) {
-      setPapiResponse('Papi needs your words to cast his spell, mi cielo 💫');
-      return;
-    }
+    if (!userInput.trim() || !cards[activeCardIndex]) return;
 
+    const cardId = cards[activeCardIndex].id;
     setIsPapiLoading(true);
-    setPapiResponse('');
-
+    
     try {
-      // Get previous cards (all cards before the current one)
-      const previousCards = cards.slice(0, activeCardIndex);
-
-      // Add user's message to chat history
+      // Add user message to the store
       addMessage({
+        cardId,
         role: 'user',
         content: userInput,
-        cardId: currentCard.id,
+        timestamp: Date.now()
       });
 
-      // Send chat request with full context
-      const response = await sendChatMessage({
-        question: userInput,
-        currentCard,
-        previousCards,
-        chatHistory: messages,
+      // Clear input immediately after sending
+      setUserInput('');
+
+      // Make API call to get Papi's response
+      const response = await fetch(`${env.VITE_BACKEND_URL}/api/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          cardId,
+          userMessage: userInput,
+          previousMessages: messages
+            .filter((m) => m.cardId === cardId)
+            .map((m) => ({ role: m.role, content: m.content }))
+        }),
       });
 
-      // Add Papi's response to chat history
+      if (!response.ok) {
+        throw new Error('Failed to get response from Papi');
+      }
+
+      const data = await response.json() as ChatResponse;
+      
+      // Add Papi's response to the store
       addMessage({
+        cardId,
         role: 'assistant',
-        content: response,
-        cardId: currentCard.id,
+        content: data.response,
+        timestamp: Date.now()
       });
-
-      setPapiResponse(response);
-    } catch (err) {
-      console.error('Error in chat request:', err);
-      setPapiResponse("Papi's lips were sealed by static, try again 💔");
+    } catch (error) {
+      console.error('Error asking Papi:', error);
+      // Add error message to the store
+      addMessage({
+        cardId,
+        role: 'assistant',
+        content: "Lo siento, mi amor! I'm having trouble channeling the spirits right now. Please try again.",
+        timestamp: Date.now()
+      });
     } finally {
       setIsPapiLoading(false);
     }
   };
 
-  const handleRevealNext = () => {
-    const next = activeCardIndex + 1;
-    if (next < spreadSize) {
-      setActiveCardIndex(next);
-      updateCardDisplayState(next, { flipAnimationCompleted: true });
-      setUserInput('');
-      setPapiResponse('');
-    }
-  };
-
-  // Reset both stores when starting a new reading
   const handleReset = () => {
-    resetTarot();
-    resetChat();
     navigate('/');
   };
 
-  // Show loading message while initializing the spread
-  if (isFetching && !cards.length) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-rose-950 via-purple-900 to-black">
-        <div className="flex flex-col items-center justify-center min-h-screen text-white">
-          <p className="text-xl mb-4">Papi is shuffling and lighting candles... 🕯️✨</p>
-          <LoadingDots />
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-indigo-900 to-blue-900 text-white p-8">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold text-pink-300">Your Reading, mi amor 🔮</h1>
+          <button
+            onClick={handleReset}
+            className="px-4 py-2 bg-pink-600 hover:bg-pink-700 rounded-lg shadow-md"
+          >
+            New Reading 💫
+          </button>
         </div>
+
+        {isInitializing ? (
+          <div className="flex flex-col items-center justify-center min-h-[60vh]">
+            <LoadingDots />
+            <p className="mt-4 text-lg">Papi is channeling the cards' energy...</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {cardIndices.map((index) => (
+                <CardContainer
+                  key={index}
+                  index={index}
+                  isActive={index === activeCardIndex}
+                  onClick={() => setActiveCardIndex(index)}
+                />
+              ))}
+            </div>
+
+            <div className="bg-black/30 rounded-lg p-6">
+              {cards[activeCardIndex] && cardDisplayStates[activeCardIndex]?.hasLoadedText && (
+                <div className="space-y-4">
+                  <h2 className="text-xl font-semibold text-pink-300">
+                    Chat with Papi about this card 💕
+                  </h2>
+
+                  <div className="space-y-4 max-h-[50vh] overflow-y-auto p-2">
+                    <ChatBubble
+                      role="assistant"
+                      message={cards[activeCardIndex].text}
+                    />
+
+                    {messages
+                      .filter((msg) => msg.cardId === cards[activeCardIndex].id)
+                      .map((msg) => (
+                        <ChatBubble
+                          key={`${msg.cardId}-${msg.timestamp}`}
+                          role={msg.role}
+                          message={msg.content}
+                        />
+                      ))}
+
+                    {isPapiLoading && (
+                      <div className="flex justify-center">
+                        <LoadingDots />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex gap-2 mt-4">
+                    <input
+                      type="text"
+                      value={userInput}
+                      onChange={(e) => setUserInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleAskPapi();
+                        }
+                      }}
+                      placeholder="Ask Papi about this card..."
+                      className="flex-1 px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                    />
+                    <button
+                      onClick={handleAskPapi}
+                      disabled={isPapiLoading || !userInput.trim()}
+                      className="px-4 py-2 bg-pink-600 hover:bg-pink-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Ask 💋
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const CardContainer: React.FC<{
+  index: number;
+  isActive: boolean;
+  onClick: () => void;
+}> = ({ index, isActive, onClick }) => {
+  const { card, isLoading, hasLoadedText, hasLoadedImage } = useTarotReading(index);
+
+  if (!card) {
+    return (
+      <div className="bg-black/30 rounded-lg p-6 flex items-center justify-center min-h-[400px]">
+        <LoadingDots />
       </div>
     );
   }
 
   return (
-    <div className="p-6 flex flex-col items-center min-h-screen gap-6 bg-gradient-to-b from-rose-950 via-purple-900 to-black text-white">
-      <div className="flex justify-between w-full max-w-5xl items-center">
-        <h2 className="text-2xl font-bold text-pink-300">Your Spread, mi amor 🔮</h2>
-        <button
-          onClick={handleReset}
-          className="px-4 py-2 bg-pink-600 hover:bg-pink-700 rounded-lg shadow-md text-white"
-        >
-          Start New Reading 💫
-        </button>
-      </div>
-
-      {/* Show loading message while fetching card data */}
-      {isInitializing && (
-        <div className="text-center text-lg text-white/80">
-          <p>Papi is consulting the spirits for your reading... ✨</p>
-          <LoadingDots />
-        </div>
-      )}
-
-      <div className="flex gap-4 flex-wrap justify-center">
-        {cards.map((card, index) => (
-          <div
-            key={card.id || index}
-            onMouseEnter={() => setHoverCardIndex(index)}
-            onMouseLeave={() => setHoverCardIndex(null)}
-            className="relative"
-          >
-            <div className="relative">
-              <TarotCard
-                faceUrl={cardDisplayStates?.[index]?.flipAnimationCompleted ? card.imageUrl : null}
-                onFlipEnd={() => handleCardFlipCompleted(index)}
-                size={180}
-              />
-              {/* Show loading dots for cards that are still loading */}
-              {cardDisplayStates?.[index]?.isLoading && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <LoadingDots />
-                </div>
-              )}
-            </div>
-
-            {/* Tooltip for past cards */}
-            {hoverCardIndex === index &&
-              index < activeCardIndex &&
-              card.text && (
-                <div className="absolute z-50 top-full left-1/2 -translate-x-1/2 bg-black bg-opacity-80 p-4 text-sm rounded-md mt-2 w-64 border border-pink-500 shadow-lg">
-                  <ChatBubble id={`hover-${index}`} imageUrl={card.imageUrl || ''} text={card.text} />
-                </div>
-              )}
-          </div>
-        ))}
-      </div>
-
-      {/* Show chat history for current card */}
-      {cards[activeCardIndex]?.text &&
-        cardDisplayStates?.[activeCardIndex]?.flipAnimationCompleted && (
-          <div className="w-full max-w-xl space-y-4">
-            <ChatBubble
-              id={cards[activeCardIndex].id}
-              imageUrl={cards[activeCardIndex].imageUrl || ''}
-              text={cards[activeCardIndex].text}
-            />
-
-            {/* Show chat history for this card */}
-            {messages
-              .filter(msg => msg.cardId === cards[activeCardIndex].id)
-              .map((msg, idx) => (
-                <ChatBubble
-                  key={`${msg.cardId}-${msg.timestamp}`}
-                  id={msg.role === 'user' ? 'user' : 'papi'}
-                  imageUrl=""
-                  text={msg.content}
-                />
-              ))}
-
-            {isPapiLoading && <p className="text-center text-sm">Papi is conjuring magic… ⏳</p>}
-
-            <div className="flex gap-2">
-              <input
-                type="text"
-                className="flex-1 px-4 py-2 rounded-md bg-white text-black placeholder:text-gray-500"
-                placeholder="Ask Papi about this card..."
-                value={userInput}
-                onChange={(e) => setUserInput(e.target.value)}
-              />
-              <button
-                onClick={handleAskPapi}
-                disabled={isPapiLoading}
-                className="bg-pink-700 hover:bg-pink-800 px-4 py-2 rounded-md text-white disabled:opacity-50"
-              >
-                {isPapiLoading ? 'Asking...' : 'Ask Papi 💋'}
-              </button>
-            </div>
-          </div>
-        )}
-
-      {/* Next button */}
-      {activeCardIndex < spreadSize - 1 &&
-        cardDisplayStates?.[activeCardIndex]?.flipAnimationCompleted && (
-          <button
-            onClick={handleRevealNext}
-            className="mt-8 px-6 py-3 bg-pink-600 hover:bg-pink-700 rounded-lg text-white font-semibold shadow-lg"
-          >
-            Reveal Next Card 💌
-          </button>
-        )}
+    <div
+      onClick={onClick}
+      className={`relative cursor-pointer transition-transform duration-200 ${
+        isActive ? 'scale-105 ring-2 ring-pink-500 rounded-lg' : 'hover:scale-102'
+      }`}
+    >
+      <TarotCard
+        card={card}
+        isLoading={isLoading}
+        hasLoadedText={hasLoadedText}
+        hasLoadedImage={hasLoadedImage}
+      />
     </div>
   );
-}
+};
