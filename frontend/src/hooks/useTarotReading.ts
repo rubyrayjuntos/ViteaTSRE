@@ -18,25 +18,20 @@ export const useTarotReading = (cardIndex: number) => {
   }, []);
 
   useEffect(() => {
-    const loadCardData = async () => {
-      // Prevent multiple simultaneous loads
-      if (isLoadingRef.current) {
-        console.log('[TarotReading] Already loading card data, skipping');
-        return;
-      }
+    const card = cards[cardIndex];
 
-      const card = cards[cardIndex];
-      if (!card || card.status.hasLoadedText || !question) {
-        console.log('[TarotReading] Skipping load - card already loaded or invalid state');
-        return;
-      }
+    if (!card || isLoadingRef.current || card.status.hasLoadedText || !question) {
+      console.log('[TarotReading] Skipping load - card missing or already loaded');
+      return;
+    }
+
+    const loadCardData = async () => {
+      isLoadingRef.current = true;
+      console.log(`[TarotReading] Loading data for card ${cardIndex}`);
+
+      updateCardStatus(cardIndex, { isLoading: true });
 
       try {
-        isLoadingRef.current = true;
-        console.log(`[TarotReading] Loading data for card ${cardIndex}`);
-        
-        updateCardStatus(cardIndex, { isLoading: true });
-        
         const textResponse = await fetchCardText(cardIndex, question);
         if (!isMounted.current) return;
 
@@ -71,7 +66,7 @@ export const useTarotReading = (cardIndex: number) => {
     };
 
     loadCardData();
-  }, [cardIndex, question]); // Only depend on cardIndex and question
+  }, [cardIndex, question, cards[cardIndex]]);
 
   const card = cards[cardIndex];
   return {
