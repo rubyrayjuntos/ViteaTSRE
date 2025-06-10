@@ -5,12 +5,12 @@ import { mockApiResponses, mockFetchResponse, mockFetchError } from '../../test/
 describe('tarotService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (global.fetch as jest.Mock).mockReset();
+    global.fetch = vi.fn();
   });
 
   describe('fetchCardText', () => {
     it('should fetch card text successfully', async () => {
-      (global.fetch as jest.Mock).mockImplementationOnce(() =>
+      (global.fetch as vi.Mock).mockImplementationOnce(() =>
         mockFetchResponse(mockApiResponses.cardText)
       );
 
@@ -33,29 +33,37 @@ describe('tarotService', () => {
     });
 
     it('should retry on network failure', async () => {
-      (global.fetch as jest.Mock)
+      vi.useFakeTimers();
+      (global.fetch as vi.Mock)
         .mockImplementationOnce(() => Promise.reject(new Error('Network error')))
         .mockImplementationOnce(() => mockFetchResponse(mockApiResponses.cardText));
 
-      const result = await fetchCardText(0, 'What lies ahead?');
+      const promise = fetchCardText(0, 'What lies ahead?');
+      vi.advanceTimersByTime(1000);
+      const result = await promise;
 
       expect(result).toEqual(mockApiResponses.cardText);
       expect(global.fetch).toHaveBeenCalledTimes(2);
+      vi.useRealTimers();
     });
 
     it('should throw ApiError on persistent failure', async () => {
-      (global.fetch as jest.Mock).mockImplementation(() =>
+      vi.useFakeTimers();
+      (global.fetch as vi.Mock).mockImplementation(() =>
         mockFetchError(500, 'Server error')
       );
 
-      await expect(fetchCardText(0, 'What lies ahead?')).rejects.toThrow('Server error');
+      const promise = fetchCardText(0, 'What lies ahead?');
+      vi.advanceTimersByTime(3000);
+      await expect(promise).rejects.toThrow('Server error');
       expect(global.fetch).toHaveBeenCalledTimes(3); // Initial + 2 retries
+      vi.useRealTimers();
     });
   });
 
   describe('fetchCardImage', () => {
     it('should fetch card image successfully', async () => {
-      (global.fetch as jest.Mock).mockImplementationOnce(() =>
+      (global.fetch as vi.Mock).mockImplementationOnce(() =>
         mockFetchResponse(mockApiResponses.cardImage)
       );
 
@@ -78,7 +86,7 @@ describe('tarotService', () => {
 
     it('should handle timeout', async () => {
       vi.useFakeTimers();
-      (global.fetch as jest.Mock).mockImplementationOnce(
+      (global.fetch as vi.Mock).mockImplementationOnce(
         () => new Promise((resolve) => setTimeout(resolve, 31000))
       );
 
@@ -92,7 +100,7 @@ describe('tarotService', () => {
 
   describe('fetchChatResponse', () => {
     it('should fetch chat response successfully', async () => {
-      (global.fetch as jest.Mock).mockImplementationOnce(() =>
+      (global.fetch as vi.Mock).mockImplementationOnce(() =>
         mockFetchResponse(mockApiResponses.chat)
       );
 
@@ -120,7 +128,7 @@ describe('tarotService', () => {
     });
 
     it('should handle invalid response', async () => {
-      (global.fetch as jest.Mock).mockImplementationOnce(() =>
+      (global.fetch as vi.Mock).mockImplementationOnce(() =>
         mockFetchResponse({ invalid: 'response' })
       );
 
