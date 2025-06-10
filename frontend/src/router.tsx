@@ -5,7 +5,7 @@ import HomePage from './pages/HomePage';
 import ReadingPage from './pages/ReadingPage';
 import MusicToggle from './components/MusicToggle';
 
-export const Router: React.FC = () => {
+const Router: React.FC = () => {
   return (
     <BrowserRouter>
       <MusicToggle />
@@ -16,3 +16,5 @@ export const Router: React.FC = () => {
     </BrowserRouter>
   );
 };
+
+export default Router;
