@@ -128,7 +128,7 @@ vi.useRealTimers();
     });
 
     it('should handle invalid response', async () => {
-      (global.fetch as vi.Mock).mockImplementationOnce(() =>
+(global.fetch as vi.Mock).mockImplementationOnce(() =>
         mockFetchResponse({ invalid: 'response' })
       );
 
