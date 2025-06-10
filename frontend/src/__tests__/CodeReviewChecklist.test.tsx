@@ -15,9 +15,8 @@ describe("CodeReviewChecklist", () => {
   });
 
   it("toggles a section closed and open", () => {
-    // Prefer getByRole for interactive elements or headings
-    // Assuming the section header is semantically a heading that acts like a button
-    const sectionHeader = screen.getByRole('heading', { name: /react components/i });
+    // Use the same selector strategy (getByText) for consistency across tests
+    const sectionHeader = screen.getByText('React Components');
 
     // Initially expanded (first item visible within the section)
     // Use `within` to scope queries to a specific element if you have multiple sections
