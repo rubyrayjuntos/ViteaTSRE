@@ -10,7 +10,7 @@ global.fetch = vi.fn();
 
   describe('fetchCardText', () => {
     it('should fetch card text successfully', async () => {
-      (global.fetch as vi.Mock).mockImplementationOnce(() =>
+(global.fetch as vi.Mock).mockImplementationOnce(() =>
         mockFetchResponse(mockApiResponses.cardText)
       );
 
