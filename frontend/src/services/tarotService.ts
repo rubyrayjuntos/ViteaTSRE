@@ -56,32 +56,38 @@ const fetchWithRetry = async <T>(url: string, options: RequestInit, retries = 3)
   
   for (let i = 0; i < retries; i++) {
     try {
+      console.log(`[API] Attempt ${i + 1}/${retries} - Fetching ${url}`, options);
       const response = await fetch(url, options);
       
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: ERROR_MESSAGES.SERVER_ERROR }));
-        throw new ApiError(errorData.message || ERROR_MESSAGES.SERVER_ERROR, response);
+        console.error(`[API] Response not OK: ${response.status} ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({ message: 'Server error' }));
+        throw new ApiError(errorData.message || 'Server error', response);
       }
       
-      return await response.json();
+      const data = await response.json();
+      console.log(`[API] Success - ${url}`, data);
+      return data;
     } catch (error) {
-      console.error(`API call failed (attempt ${i + 1}/${retries}):`, error);
+      console.error(`[API] Attempt ${i + 1} failed:`, error);
       lastError = error as Error;
       
       if (i < retries - 1) {
-        await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, i))); // Exponential backoff
+        const delay = 1000 * Math.pow(2, i);
+        console.log(`[API] Retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
   }
   
-  throw lastError || new Error(ERROR_MESSAGES.NETWORK_ERROR);
+  throw lastError || new Error('Network error');
 };
 
 // API endpoints
 export const fetchCardText = async (cardIndex: number, question: string): Promise<CardTextResponse> => {
+  console.log(`[API] Fetching card text for index ${cardIndex} with question: ${question}`);
   try {
-    console.log(`Fetching card text for index ${cardIndex}`);
-    return await fetchWithRetry<CardTextResponse>(
+    const response = await fetchWithRetry<CardTextResponse>(
       `${env.VITE_BACKEND_URL}/api/reading/text`,
       {
         method: 'POST',
@@ -94,22 +100,17 @@ export const fetchCardText = async (cardIndex: number, question: string): Promis
         }),
       }
     );
+    console.log(`[API] Card text response:`, response);
+    return response;
   } catch (error) {
-    console.error('Error fetching card text:', error);
-    if (error instanceof ApiError) {
-      throw error;
-    }
-    throw new ApiError(
-      ERROR_MESSAGES.CARD_LOAD_ERROR,
-      undefined,
-      'TEXT_FETCH_ERROR'
-    );
+    console.error('[API] Card text fetch error:', error);
+    throw error;
   }
 };
 
 export const fetchCardImage = async (cardId: string): Promise<string> => {
+  console.log(`[API] Fetching card image for ID ${cardId}`);
   try {
-    console.log(`Fetching card image for ID ${cardId}`);
     const data = await fetchWithRetry<CardImageResponse>(
       `${env.VITE_BACKEND_URL}/api/reading/image`,
       {
@@ -122,17 +123,11 @@ export const fetchCardImage = async (cardId: string): Promise<string> => {
         }),
       }
     );
+    console.log(`[API] Card image response:`, data);
     return data.imageUrl;
   } catch (error) {
-    console.error('Error fetching card image:', error);
-    if (error instanceof ApiError) {
-      throw error;
-    }
-    throw new ApiError(
-      ERROR_MESSAGES.CARD_LOAD_ERROR,
-      undefined,
-      'IMAGE_FETCH_ERROR'
-    );
+    console.error('[API] Card image fetch error:', error);
+    throw error;
   }
 };
 

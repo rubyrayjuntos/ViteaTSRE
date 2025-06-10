@@ -30,19 +30,39 @@ const ReadingPage: React.FC = () => {
 
   // Initialize the spread once when the component mounts
   useEffect(() => {
+    console.log('[ReadingPage] Mount effect - Current state:', {
+      question,
+      spread,
+      cardsLength: cards.length,
+      isInitializing
+    });
+
     if (!question) {
+      console.log('[ReadingPage] No question found, redirecting to home');
       navigate('/');
       return;
     }
 
     if (!cards.length && !isInitializing) {
       const size = getSpreadSize(spread);
+      console.log('[ReadingPage] Initializing spread with size:', size);
       initializeSpread(size);
     }
   }, []);
 
+  // Log state changes
+  useEffect(() => {
+    console.log('[ReadingPage] State update:', {
+      cardsLength: cards.length,
+      isInitializing,
+      activeCardIndex,
+      currentCardStatus: cards[activeCardIndex]?.status
+    });
+  }, [cards, isInitializing, activeCardIndex]);
+
   // Show loading state while initializing
   if (isInitializing || !cards.length) {
+    console.log('[ReadingPage] Showing loading state');
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-b from-cyan-950 to-emerald-900">
         <div className="text-center">
@@ -53,6 +73,7 @@ const ReadingPage: React.FC = () => {
     );
   }
 
+  console.log('[ReadingPage] Rendering main content');
   return (
     <div className="min-h-screen bg-gradient-to-b from-cyan-950 to-emerald-900 text-yellow-50 py-8">
       <div className="container mx-auto px-4">
