@@ -29,10 +29,12 @@ export interface Card {
 interface TarotState {
   question: string;
   spreadSize: number;
+  spread: 'Destiny' | 'Cruz' | 'Love';
   cards: Card[];
   isInitializing: boolean;
   globalError?: string;
   setQuestion: (q: string) => void;
+  setSpread: (s: 'Destiny' | 'Cruz' | 'Love') => void;
   initializeSpread: (count: number) => void;
   updateCardData: (cardIndex: number, data: Partial<Omit<Card, 'status' | 'messages'>>) => void;
   updateCardStatus: (cardIndex: number, status: Partial<Card['status']>) => void;
@@ -46,11 +48,14 @@ interface TarotState {
 export const useTarotStore = create<TarotState>((set) => ({
   question: '',
   spreadSize: 0,
+  spread: 'Destiny',
   cards: [],
   isInitializing: false,
   globalError: undefined,
 
   setQuestion: (q: string) => set({ question: q }),
+  
+  setSpread: (s: 'Destiny' | 'Cruz' | 'Love') => set({ spread: s }),
 
   initializeSpread: (count: number) =>
     set({
@@ -191,6 +196,7 @@ export const useTarotStore = create<TarotState>((set) => ({
     set({
       question: '',
       spreadSize: 0,
+      spread: 'Destiny',
       cards: [],
       isInitializing: false,
       globalError: undefined

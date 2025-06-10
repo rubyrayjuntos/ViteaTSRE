@@ -1,14 +1,51 @@
 // src/pages/ReadingPage.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTarotStore } from '../stores/useTarotStore';
 import { TarotCard } from '../components/TarotCard';
 import { useTarotChat } from '../hooks/useTarotChat';
 import { ChatBox } from '../components/ChatBox';
+import { useTarotReading } from '../hooks/useTarotReading';
+import { LoadingDots } from '../components/LoadingDots';
+
+const getSpreadSize = (spread: 'Destiny' | 'Cruz' | 'Love'): number => {
+  switch (spread) {
+    case 'Destiny':
+      return 3;
+    case 'Cruz':
+      return 4;
+    case 'Love':
+      return 2;
+    default:
+      return 3;
+  }
+};
 
 const ReadingPage: React.FC = () => {
-  const { cards, question } = useTarotStore();
+  const navigate = useNavigate();
+  const { cards, question, spread, initializeSpread } = useTarotStore();
   const [activeCardIndex, setActiveCardIndex] = useState(0);
   const { sendMessage, messages, isLoading: isChatLoading } = useTarotChat(activeCardIndex);
+  const { } = useTarotReading(activeCardIndex);
+
+  // Initialize the spread if we don't have cards yet
+  useEffect(() => {
+    if (!cards.length && question) {
+      const size = getSpreadSize(spread);
+      initializeSpread(size);
+    } else if (!question) {
+      // If there's no question, redirect back to home
+      navigate('/');
+    }
+  }, [cards.length, question, spread, initializeSpread, navigate]);
+
+  if (!cards.length || !question) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <LoadingDots />
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">

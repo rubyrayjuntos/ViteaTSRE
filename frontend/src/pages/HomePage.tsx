@@ -15,7 +15,8 @@ export default function HomePage() {
     spread,
     setQuestion,
     setSpread,
-    reset, // clears question + cards
+    reset,
+    cards,
   } = useTarotStore();
 
   /** ------------------------------------------------------------------
@@ -24,12 +25,13 @@ export default function HomePage() {
   const rippleControls = useAnimationControls();
 
   /** ------------------------------------------------------------------
-   * One‑time reset on page mount
+   * Reset only if we have cards (meaning we're coming from a reading)
    * -----------------------------------------------------------------*/
   useEffect(() => {
-    reset(); // remove this and the dependency array if you DON'T want an automatic reset
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (cards.length > 0) {
+      reset();
+    }
+  }, [cards.length, reset]);
 
   /** ------------------------------------------------------------------
    * Hooks
