@@ -21,7 +21,7 @@ export const mockFetchResponse = <T>(data: T) =>
 export const mockFetchError = (
   status = 500,
   statusText = 'Internal Server Error'
-) =>
+): Promise<Response> =>
   Promise.resolve({
     ok: false,
     status,
