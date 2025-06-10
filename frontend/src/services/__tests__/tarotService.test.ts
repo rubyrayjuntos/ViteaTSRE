@@ -49,7 +49,7 @@ vi.useRealTimers();
 
     it('should throw ApiError on persistent failure', async () => {
       vi.useFakeTimers();
-      (global.fetch as vi.Mock).mockImplementation(() =>
+(global.fetch as vi.Mock).mockImplementation(() =>
         mockFetchError(500, 'Server error')
       );
 
