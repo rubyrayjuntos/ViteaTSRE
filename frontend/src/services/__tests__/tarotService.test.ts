@@ -39,7 +39,7 @@ global.fetch = vi.fn();
         .mockImplementationOnce(() => mockFetchResponse(mockApiResponses.cardText));
 
       const promise = fetchCardText(0, 'What lies ahead?');
-      vi.advanceTimersByTime(1000);
+vi.advanceTimersByTime(1000);
       const result = await promise;
 
       expect(result).toEqual(mockApiResponses.cardText);
