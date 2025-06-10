@@ -11,7 +11,7 @@ export const mockApiResponses = {
   }
 };
 
-export const mockFetchResponse = <T>(data: T) =>
+export const mockFetchResponse = <T>(data: T): Promise<Response> =>
   Promise.resolve({
     ok: true,
     status: 200,
