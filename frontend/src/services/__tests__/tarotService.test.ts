@@ -44,7 +44,7 @@ vi.advanceTimersByTime(1000);
 
       expect(result).toEqual(mockApiResponses.cardText);
       expect(global.fetch).toHaveBeenCalledTimes(2);
-      vi.useRealTimers();
+vi.useRealTimers();
     });
 
     it('should throw ApiError on persistent failure', async () => {
