@@ -1,46 +1,65 @@
 // src/components/TarotCard.tsx
 import React from 'react';
-import { motion } from 'framer-motion';
 import { LoadingDots } from './LoadingDots';
-import type { DrawnCard } from '../stores/useTarotStore';
+import { Card } from '../types';
 
 interface Props {
-  card: DrawnCard;
-  isLoading: boolean;
-  hasLoadedText: boolean;
-  hasLoadedImage: boolean;
+  card: Card;
+  isActive: boolean;
+  onClick: () => void;
 }
 
 export const TarotCard: React.FC<Props> = ({
   card,
-  isLoading,
-  hasLoadedText,
-  hasLoadedImage,
+  isActive,
+  onClick
 }) => {
+  const { status, imageUrl, id } = card;
+
   return (
-    <motion.div
-      initial={{ scale: 0.9, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      transition={{ duration: 0.3 }}
-      className="relative bg-black/30 rounded-lg overflow-hidden aspect-[2/3] min-h-[400px]"
+    <button
+      onClick={onClick}
+      className={`relative w-full aspect-[2/3] rounded-lg overflow-hidden transition-all duration-300 ${
+        isActive ? 'scale-105 ring-2 ring-primary' : 'hover:scale-102'
+      }`}
+      data-testid="card"
+      aria-label={`${id} Tarot Card`}
     >
-      {hasLoadedImage ? (
-        <img
-          src={card.imageUrl}
-          alt={card.id}
-          className="w-full h-full object-cover"
-        />
-      ) : (
-        <div className="absolute inset-0 flex items-center justify-center">
+      {status.isLoading && (
+        <div 
+          className="absolute inset-0 flex items-center justify-center bg-background/80"
+          data-testid="loading-indicator"
+        >
           <LoadingDots />
         </div>
       )}
 
-      {hasLoadedText && (
-        <div className="absolute bottom-0 left-0 right-0 bg-black/70 p-4">
-          <p className="text-white text-sm">{card.text}</p>
+      {status.error && (
+        <div 
+          className="absolute inset-0 flex items-center justify-center bg-destructive/10 text-destructive p-4 text-center"
+          data-testid="error-message"
+        >
+          {status.error.message}
         </div>
       )}
-    </motion.div>
+
+      {!status.hasLoadedImage && !status.isLoading && (
+        <div 
+          className="absolute inset-0 bg-muted flex items-center justify-center"
+          data-testid="card-placeholder"
+        >
+          <span className="text-muted-foreground">Loading card...</span>
+        </div>
+      )}
+
+      {imageUrl && (
+        <img
+          src={imageUrl}
+          alt={`${id} Tarot Card`}
+          className="w-full h-full object-cover"
+          data-testid="card-image"
+        />
+      )}
+    </button>
   );
 };
