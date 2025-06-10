@@ -1,5 +1,5 @@
 // src/pages/ReadingPage.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTarotStore } from '../stores/useTarotStore';
 import { TarotCard } from '../components/TarotCard';
@@ -23,87 +23,97 @@ const getSpreadSize = (spread: 'Destiny' | 'Cruz' | 'Love'): number => {
 
 const ReadingPage: React.FC = () => {
   const navigate = useNavigate();
-  const { cards, question, spread, initializeSpread } = useTarotStore();
+  const { cards, question, spread, initializeSpread, isInitializing } = useTarotStore();
   const [activeCardIndex, setActiveCardIndex] = useState(0);
   const { sendMessage, messages, isLoading: isChatLoading } = useTarotChat(activeCardIndex);
   const { } = useTarotReading(activeCardIndex);
 
-  // Initialize the spread if we don't have cards yet
+  // Initialize the spread once when the component mounts
   useEffect(() => {
-    if (!cards.length && question) {
+    if (!question) {
+      navigate('/');
+      return;
+    }
+
+    if (!cards.length && !isInitializing) {
       const size = getSpreadSize(spread);
       initializeSpread(size);
-    } else if (!question) {
-      // If there's no question, redirect back to home
-      navigate('/');
     }
-  }, [cards.length, question, spread, initializeSpread, navigate]);
+  }, []);
 
-  if (!cards.length || !question) {
+  // Show loading state while initializing
+  if (isInitializing || !cards.length) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <LoadingDots />
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-b from-cyan-950 to-emerald-900">
+        <div className="text-center">
+          <LoadingDots />
+          <p className="mt-4 text-yellow-50">Shuffling the cards...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold mb-4" data-testid="question-display">
-          {question}
-        </h1>
-      </div>
+    <div className="min-h-screen bg-gradient-to-b from-cyan-950 to-emerald-900 text-yellow-50 py-8">
+      <div className="container mx-auto px-4">
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold mb-4" data-testid="question-display">
+            {question}
+          </h1>
+        </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6" data-testid="card-grid">
-        {cards.map((card, index) => (
-          <TarotCard
-            key={index}
-            card={card}
-            isActive={index === activeCardIndex}
-            onClick={() => setActiveCardIndex(index)}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6" data-testid="card-grid">
+          {cards.map((card, index) => (
+            <TarotCard
+              key={index}
+              card={card}
+              isActive={index === activeCardIndex}
+              onClick={() => setActiveCardIndex(index)}
+            />
+          ))}
+        </div>
+
+        <div className="mt-8" data-testid="chat-section">
+          {cards[activeCardIndex]?.text && (
+            <div className="mb-4 p-4 bg-black/20 backdrop-blur-sm rounded-lg" data-testid="card-text">
+              {cards[activeCardIndex].text}
+            </div>
+          )}
+
+          <ChatBox
+            messages={messages}
+            onSendMessage={sendMessage}
+            isLoading={isChatLoading}
+            inputProps={{
+              'data-testid': 'chat-input',
+              placeholder: 'Ask about this card...',
+              className: 'bg-black/20 backdrop-blur-sm border-pink-500/50'
+            }}
+            sendButtonProps={{
+              'data-testid': 'send-message',
+              className: 'bg-pink-500 hover:bg-pink-600'
+            }}
           />
-        ))}
-      </div>
+        </div>
 
-      <div className="mt-8" data-testid="chat-section">
-        {cards[activeCardIndex]?.text && (
-          <div className="mb-4 p-4 bg-muted rounded-lg" data-testid="card-text">
-            {cards[activeCardIndex].text}
-          </div>
-        )}
-
-        <ChatBox
-          messages={messages}
-          onSendMessage={sendMessage}
-          isLoading={isChatLoading}
-          inputProps={{
-            'data-testid': 'chat-input',
-            placeholder: 'Ask about this card...'
-          }}
-          sendButtonProps={{
-            'data-testid': 'send-message'
-          }}
-        />
-      </div>
-
-      <div className="flex justify-between mt-8">
-        <button
-          onClick={() => setActiveCardIndex(prev => Math.max(0, prev - 1))}
-          disabled={activeCardIndex === 0}
-          className="btn btn-secondary"
-          data-testid="prev-card"
-        >
-          Previous Card
-        </button>
-        <button
-          onClick={() => setActiveCardIndex(prev => Math.min(cards.length - 1, prev + 1))}
-          disabled={activeCardIndex === cards.length - 1}
-          className="btn btn-secondary"
-          data-testid="next-card"
-        >
-          Next Card
-        </button>
+        <div className="flex justify-between mt-8">
+          <button
+            onClick={() => setActiveCardIndex(prev => Math.max(0, prev - 1))}
+            disabled={activeCardIndex === 0}
+            className="px-4 py-2 bg-pink-500 hover:bg-pink-600 disabled:opacity-50 rounded-lg"
+            data-testid="prev-card"
+          >
+            Previous Card
+          </button>
+          <button
+            onClick={() => setActiveCardIndex(prev => Math.min(cards.length - 1, prev + 1))}
+            disabled={activeCardIndex === cards.length - 1}
+            className="px-4 py-2 bg-pink-500 hover:bg-pink-600 disabled:opacity-50 rounded-lg"
+            data-testid="next-card"
+          >
+            Next Card
+          </button>
+        </div>
       </div>
     </div>
   );
