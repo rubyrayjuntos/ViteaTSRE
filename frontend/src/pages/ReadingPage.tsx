@@ -3,8 +3,11 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTarotStore } from '../stores/useTarotStore';
 import { useTarotReading } from '../hooks/useTarotReading';
+import { useChatStore } from '../stores/useChatStore';
+import { sendChatMessage } from '../services/chatService';
 import { TarotCard } from '../components/TarotCard';
 import ChatBubble from '../components/ChatBubble';
+import LoadingDots from '../components/LoadingDots';
 
 const BACKEND_URL = ((import.meta as any).env?.VITE_BACKEND_URL as string) || 'http://localhost:8000';
 
@@ -16,10 +19,17 @@ export default function ReadingPage() {
     spreadSize,
     updateCardDisplayState,
     question,
-    reset,
+    reset: resetTarot,
+    isInitializing,
   } = useTarotStore();
 
-  const { isFetching, isError, error } = useTarotReading();
+  const { isFetching } = useTarotReading();
+
+  const {
+    messages,
+    addMessage,
+    reset: resetChat,
+  } = useChatStore();
 
   const [activeCardIndex, setActiveCardIndex] = useState(0);
   const [userInput, setUserInput] = useState('');
@@ -38,8 +48,8 @@ export default function ReadingPage() {
   };
 
   const handleAskPapi = async () => {
-    const card = cards[activeCardIndex];
-    if (!card || !card.id || !userInput.trim()) {
+    const currentCard = cards[activeCardIndex];
+    if (!currentCard || !currentCard.id || !userInput.trim()) {
       setPapiResponse('Papi needs your words to cast his spell, mi cielo 💫');
       return;
     }
@@ -48,38 +58,34 @@ export default function ReadingPage() {
     setPapiResponse('');
 
     try {
-      console.log('CHAT_SERVICE: Sending chat request:', { question: userInput, card_id: card.id });
-      const res = await fetch(`${BACKEND_URL}/api/chat`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        mode: 'cors',
-        body: JSON.stringify({ question: userInput, card_id: card.id }),
+      // Get previous cards (all cards before the current one)
+      const previousCards = cards.slice(0, activeCardIndex);
+
+      // Add user's message to chat history
+      addMessage({
+        role: 'user',
+        content: userInput,
+        cardId: currentCard.id,
       });
 
-      console.log('CHAT_SERVICE: Chat response status:', res.status, res.statusText);
-      const responseBodyText = await res.text(); // Get raw text first
-      console.log('CHAT_SERVICE: Chat raw response body:', responseBodyText);
+      // Send chat request with full context
+      const response = await sendChatMessage({
+        question: userInput,
+        currentCard,
+        previousCards,
+        chatHistory: messages,
+      });
 
-      if (!res.ok) {
-        let errorData;
-        try {
-          errorData = JSON.parse(responseBodyText);
-        } catch (e) {
-          errorData = { message: responseBodyText || res.statusText };
-        }
-        console.error('CHAT_SERVICE: Error in chat response:', errorData);
-        setPapiResponse(errorData.message || `Papi's words are lost in static... (Error ${res.status})`);
-        return;
-      }
+      // Add Papi's response to chat history
+      addMessage({
+        role: 'assistant',
+        content: response,
+        cardId: currentCard.id,
+      });
 
-      const data = JSON.parse(responseBodyText);
-      console.log('CHAT_SERVICE: Chat parsed response:', data);
-      setPapiResponse(data.text || 'Papi whispered, but no one heard...');
+      setPapiResponse(response);
     } catch (err) {
-      console.error('CHAT_SERVICE: Error in chat request:', err);
+      console.error('Error in chat request:', err);
       setPapiResponse("Papi's lips were sealed by static, try again 💔");
     } finally {
       setIsPapiLoading(false);
@@ -96,12 +102,23 @@ export default function ReadingPage() {
     }
   };
 
-  if (isFetching) {
-    return <div className="text-center mt-20 text-lg">Papi is shuffling and lighting candles... 🕯️✨</div>;
-  }
+  // Reset both stores when starting a new reading
+  const handleReset = () => {
+    resetTarot();
+    resetChat();
+    navigate('/');
+  };
 
-  if (isError) {
-    return <div className="text-red-500 text-center mt-20">Ay, spirits are confused... {error?.message}</div>;
+  // Show loading message while initializing the spread
+  if (isFetching && !cards.length) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-rose-950 via-purple-900 to-black">
+        <div className="flex flex-col items-center justify-center min-h-screen text-white">
+          <p className="text-xl mb-4">Papi is shuffling and lighting candles... 🕯️✨</p>
+          <LoadingDots />
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -109,15 +126,20 @@ export default function ReadingPage() {
       <div className="flex justify-between w-full max-w-5xl items-center">
         <h2 className="text-2xl font-bold text-pink-300">Your Spread, mi amor 🔮</h2>
         <button
-          onClick={() => {
-            reset();
-            navigate('/');
-          }}
+          onClick={handleReset}
           className="px-4 py-2 bg-pink-600 hover:bg-pink-700 rounded-lg shadow-md text-white"
         >
           Start New Reading 💫
         </button>
       </div>
+
+      {/* Show loading message while fetching card data */}
+      {isInitializing && (
+        <div className="text-center text-lg text-white/80">
+          <p>Papi is consulting the spirits for your reading... ✨</p>
+          <LoadingDots />
+        </div>
+      )}
 
       <div className="flex gap-4 flex-wrap justify-center">
         {cards.map((card, index) => (
@@ -127,11 +149,19 @@ export default function ReadingPage() {
             onMouseLeave={() => setHoverCardIndex(null)}
             className="relative"
           >
-            <TarotCard
-              faceUrl={cardDisplayStates?.[index]?.flipAnimationCompleted ? card.imageUrl : null}
-              onFlipEnd={() => handleCardFlipCompleted(index)}
-              size={180}
-            />
+            <div className="relative">
+              <TarotCard
+                faceUrl={cardDisplayStates?.[index]?.flipAnimationCompleted ? card.imageUrl : null}
+                onFlipEnd={() => handleCardFlipCompleted(index)}
+                size={180}
+              />
+              {/* Show loading dots for cards that are still loading */}
+              {cardDisplayStates?.[index]?.isLoading && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <LoadingDots />
+                </div>
+              )}
+            </div>
 
             {/* Tooltip for past cards */}
             {hoverCardIndex === index &&
@@ -145,7 +175,7 @@ export default function ReadingPage() {
         ))}
       </div>
 
-      {/* Current card's text and chat */}
+      {/* Show chat history for current card */}
       {cards[activeCardIndex]?.text &&
         cardDisplayStates?.[activeCardIndex]?.flipAnimationCompleted && (
           <div className="w-full max-w-xl space-y-4">
@@ -155,10 +185,19 @@ export default function ReadingPage() {
               text={cards[activeCardIndex].text}
             />
 
+            {/* Show chat history for this card */}
+            {messages
+              .filter(msg => msg.cardId === cards[activeCardIndex].id)
+              .map((msg, idx) => (
+                <ChatBubble
+                  key={`${msg.cardId}-${msg.timestamp}`}
+                  id={msg.role === 'user' ? 'user' : 'papi'}
+                  imageUrl=""
+                  text={msg.content}
+                />
+              ))}
+
             {isPapiLoading && <p className="text-center text-sm">Papi is conjuring magic… ⏳</p>}
-            {papiResponse && !isPapiLoading && (
-              <ChatBubble id="papi" imageUrl="" text={papiResponse} />
-            )}
 
             <div className="flex gap-2">
               <input
@@ -171,7 +210,7 @@ export default function ReadingPage() {
               <button
                 onClick={handleAskPapi}
                 disabled={isPapiLoading}
-                className="bg-pink-700 hover:bg-pink-800 px-4 py-2 rounded-md text-white"
+                className="bg-pink-700 hover:bg-pink-800 px-4 py-2 rounded-md text-white disabled:opacity-50"
               >
                 {isPapiLoading ? 'Asking...' : 'Ask Papi 💋'}
               </button>

@@ -14,64 +14,68 @@ export function useTarotReading() {
   const mutation = useMutation({
     mutationFn: async () => {
       initializeSpread(computedSpreadSize); // Create placeholder cards in the store
-
       const errors: Error[] = [];
 
-      // --- Process Text Sequentially ---
-      const processAllText = async () => {
-        for (let i = 0; i < computedSpreadSize; i++) {
-          try {
-            const payload: CardRequestPayload = { question, totalCardsInSpread: computedSpreadSize, cardNumberInSpread: i };
-            const { id: cardId, text } = await fetchCardText(payload);
-            updateCardData(i, { id: cardId, text });
-          } catch (error) {
-            console.error(`Error fetching text for card index ${i}:`, error);
-            updateCardData(i, { text: "Papi Chispa is having trouble hearing the spirits for this one, mi amor..." });
-            if (error instanceof Error) errors.push(error);
-          }
+      // Process each card's data (text and image) independently
+      const processCard = async (index: number) => {
+        console.log(`READING_HOOK: Starting to process card ${index}`);
+        
+        try {
+          const payload: CardRequestPayload = {
+            question,
+            totalCardsInSpread: computedSpreadSize,
+            cardNumberInSpread: index
+          };
+
+          // Fetch text and image in parallel for this specific card
+          const [textResponse, imageResponse] = await Promise.all([
+            fetchCardText(payload).catch(error => {
+              console.error(`Error fetching text for card ${index}:`, error);
+              errors.push(error);
+              return { id: `ERROR_${index}`, text: "Papi couldn't channel the message for this card, mi amor..." };
+            }),
+            fetchCardImage(payload).catch(error => {
+              console.error(`Error fetching image for card ${index}:`, error);
+              errors.push(error);
+              return { id: `ERROR_${index}`, imageUrl: "" };
+            })
+          ]);
+
+          // Update the store with this card's data as soon as we have it
+          updateCardData(index, {
+            id: textResponse.id,
+            text: textResponse.text,
+            imageUrl: imageResponse.imageUrl
+          });
+
+          console.log(`READING_HOOK: Successfully processed card ${index}`);
+        } catch (error) {
+          console.error(`READING_HOOK: Error processing card ${index}:`, error);
+          if (error instanceof Error) errors.push(error);
+          updateCardData(index, {
+            text: "Ay caramba! Something went wrong with this card...",
+            imageUrl: ""
+          });
         }
       };
 
-      // --- Process Images Sequentially ---
-      const processAllImages = async () => {
-        for (let i = 0; i < computedSpreadSize; i++) {
-          try {
-            const payload: CardRequestPayload = { question, totalCardsInSpread: computedSpreadSize, cardNumberInSpread: i };
-            const { id: cardId, imageUrl } = await fetchCardImage(payload);
-            // If cardId from image differs from text, text's ID might be preferred or needs reconciliation.
-            // For now, we assume it's consistent or text sets it definitively.
-            updateCardData(i, { id: cardId, imageUrl });
-          } catch (error) {
-            console.error(`Error fetching image for card index ${i}:`, error);
-            updateCardData(i, { imageUrl: "" }); // Show placeholder/broken image
-            if (error instanceof Error) errors.push(error);
-          }
-        }
-      };
-
-      try {
-        // Run text and image processing sequences in parallel to each other.
-        // Each sequence (text, image) processes its items (card 0, 1, 2...) sequentially internally.
-        await Promise.all([processAllText(), processAllImages()]);
-
-        if (errors.length > 0) {
-          // If any individual fetch failed but was handled, we might still want to
-          // mark the overall mutation as partially failed or log a summary.
-          // For React Query to consider this an 'error' state, we need to throw.
-          throw new Error(`One or more card data fetches failed. Collected ${errors.length} errors.`);
-        }
-      } catch (error) {
-        console.error('Overall error during card data fetching:', error);
-        throw error;
+      // Process cards sequentially, but handle each card's text and image in parallel
+      for (let i = 0; i < computedSpreadSize; i++) {
+        await processCard(i);
       }
-    },
+
+      if (errors.length > 0) {
+        console.warn(`READING_HOOK: Completed with ${errors.length} errors`);
+        // We don't throw here to allow partial success
+      }
+    }
   });
 
   useEffect(() => {
     if (hasRun.current) return;
     hasRun.current = true;
     mutation.mutate();
-  }, [mutation]); // Ensure mutation object is in dependency array
+  }, [mutation]);
 
   return {
     isFetching: mutation.isPending,

@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from openai import AsyncOpenAI, OpenAIError
 from random import sample
 from typing import List, Tuple
+from papi_config import PAPI_PERSONA, get_image_prompt_style, get_chat_system_prompt
 
 from deck import TAROT_CARDS # Assuming deck.py is in the same directory
 
@@ -166,11 +167,10 @@ async def generate_text_for_card(card_name: str, question_context: str, total_ca
         f"User question: {question_context}\n"
         "Respond in Papi's style."
     )
-    system_message = "You are Papi Chispa, a flirtatious Latino tarot reader. Give a 2–3 paragraph reading based on the given card name and the user's question. Keep it poetic and playful."
     try:
         chat_completion = await client.chat.completions.create(
             messages=[
-                {"role": "system", "content": system_message},
+                {"role": "system", "content": get_chat_system_prompt()},
                 {"role": "user", "content": prompt_content},
             ],
             model=GPT_MODEL,
@@ -191,23 +191,28 @@ async def generate_text_for_card(card_name: str, question_context: str, total_ca
 
 async def generate_image_for_card(card_name: str) -> str:
     logging.info(f"Generating image for card: {card_name}")
+    style_guide = get_image_prompt_style()
     try:
+        prompt = f"""Tarot card illustration of {card_name}.
+{style_guide}
+Make it emotionally evocative and dramatically lit."""
+
         img = await client.images.generate(
             model=DALL_E_MODEL,
-            prompt=f"Tarot card illustration of {card_name} in neon retro Latino style",
-            size="1024x1024", # Changed to a supported DALL-E 3 size
+            prompt=prompt,
+            size="1024x1024",
             n=1,
         )
         if img and img.data and len(img.data) > 0 and img.data[0] and img.data[0].url:
             logging.info(f"Successfully generated image URL for {card_name}")
             return img.data[0].url
-        return "" # Fallback for no URL
+        return ""
     except OpenAIError as e:
         logging.error(f"OpenAI API error generating image for {card_name}: {e}")
-        return "" # Fallback for API error
+        return ""
     except Exception as e:
         logging.error(f"Unexpected error generating image for {card_name}: {e}\n{traceback.format_exc()}")
-        return "" # Fallback for other errors
+        return ""
 
 # --- API Endpoints ---
 @app.post("/image") # Standalone image generation, not tied to a reading context
@@ -313,26 +318,72 @@ if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
 
 @app.post("/api/chat")
-async def follow_up_chat(req: ChatReq):
-    logging.info(f"Follow-up question: '{req.question}' for card: {req.card_id}")
-    prompt_content = (
-        f"User has drawn the tarot card: {req.card_id}.\n"
-        f"They now ask: '{req.question}'\n"
-        "Answer as Papi Chispa, the poetic and flirtatious tarot reader. Be symbolic, emotional, and dramatic."
-    )
+async def chat(request: Request):
     try:
-        chat_completion = await client.chat.completions.create(
+        data = await request.json()
+        question = data.get("question")
+        current_card_id = data.get("current_card_id")
+        previous_cards = data.get("previous_cards", [])
+        chat_history = data.get("chat_history", [])
+
+        if not question or not current_card_id:
+            raise HTTPException(status_code=400, detail="Missing required fields")
+
+        # Format the context for the AI
+        context = f"""{get_chat_system_prompt()}
+
+Current card: {current_card_id}
+
+Previous cards drawn in this reading:
+{format_previous_cards(previous_cards)}
+
+Chat history for this reading:
+{format_chat_history(chat_history)}
+
+Question about the current card: {question}
+
+Respond as Papi Chispa, considering:
+1. The specific meaning of the current card
+2. How it relates to any previous cards drawn
+3. The context of the entire conversation so far
+4. The specific question being asked
+
+Keep your response focused primarily on the current card but weave in connections to previous cards when relevant."""
+
+        # Call OpenAI API with the enhanced context
+        response = await client.chat.completions.create(
             model=GPT_MODEL,
             messages=[
-                {"role": "system", "content": "You are Papi Chispa, a sensual and emotionally rich tarot reader. Respond in Spanglish. Make each message a velvet confession."},
-                {"role": "user", "content": prompt_content},
+                {"role": "system", "content": context},
+                {"role": "user", "content": question}
             ],
-            max_tokens=350,
-            temperature=0.92,
+            temperature=0.7,
+            max_tokens=300
         )
-        text = chat_completion.choices[0].message.content
-        logging.info(f"Generated follow-up for {req.card_id}")
-        return {"text": text.strip() if text else "Ay, Papi is caught in a dreamy silence..."}
+
+        return {"text": response.choices[0].message.content}
+
     except Exception as e:
-        logging.error(f"Error generating follow-up: {e}")
-        return {"text": f"Papi is speechless, mi amor... something went wrong: {str(e)}"}
+        logging.error(f"Error in chat endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+def format_previous_cards(cards):
+    if not cards:
+        return "No previous cards drawn."
+    
+    formatted = []
+    for i, card in enumerate(cards, 1):
+        formatted.append(f"{i}. {card['id']}: {card['text']}")
+    
+    return "\n".join(formatted)
+
+def format_chat_history(history):
+    if not history:
+        return "No previous conversation."
+    
+    formatted = []
+    for msg in history:
+        role = "User" if msg["role"] == "user" else "Papi"
+        formatted.append(f"{role}: {msg['content']}")
+    
+    return "\n".join(formatted)
