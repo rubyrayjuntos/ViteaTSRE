@@ -100,7 +100,7 @@ vi.useRealTimers();
 
   describe('fetchChatResponse', () => {
     it('should fetch chat response successfully', async () => {
-      (global.fetch as vi.Mock).mockImplementationOnce(() =>
+(global.fetch as vi.Mock).mockImplementationOnce(() =>
         mockFetchResponse(mockApiResponses.chat)
       );
 
