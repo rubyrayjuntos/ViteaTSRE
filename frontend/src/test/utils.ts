@@ -11,13 +11,23 @@ export const mockApiResponses = {
   }
 };
 
-export const mockFetchResponse = <T>(data: T): Promise<T> => {
-  return Promise.resolve(data);
-};
+export const mockFetchResponse = <T>(data: T) =>
+  Promise.resolve({
+    ok: true,
+    status: 200,
+    json: () => Promise.resolve(data),
+  } as Response);
 
-export const mockFetchError = (message: string): Promise<never> => {
-  return Promise.reject(new Error(message));
-};
+export const mockFetchError = (
+  status = 500,
+  statusText = 'Internal Server Error'
+) =>
+  Promise.resolve({
+    ok: false,
+    status,
+    statusText,
+    json: () => Promise.resolve({ message: statusText }),
+  } as Response);
 
 export const mockCard = {
   id: 'the-fool',
