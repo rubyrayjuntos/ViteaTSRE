@@ -34,7 +34,7 @@ global.fetch = vi.fn();
 
     it('should retry on network failure', async () => {
       vi.useFakeTimers();
-      (global.fetch as vi.Mock)
+(global.fetch as vi.Mock)
         .mockImplementationOnce(() => Promise.reject(new Error('Network error')))
         .mockImplementationOnce(() => mockFetchResponse(mockApiResponses.cardText));
 
