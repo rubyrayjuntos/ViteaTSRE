@@ -1,5 +1,5 @@
 // src/pages/ReadingPage.tsx
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTarotStore } from '../stores/useTarotStore';
 import { TarotCard } from '../components/TarotCard';
@@ -26,10 +26,13 @@ const ReadingPage: React.FC = () => {
   const { cards, question, spread, initializeSpread, isInitializing } = useTarotStore();
   const [activeCardIndex, setActiveCardIndex] = useState(0);
   const { sendMessage, messages, isLoading: isChatLoading } = useTarotChat(activeCardIndex);
-  const { } = useTarotReading(activeCardIndex);
+  const { isLoading: isCardLoading } = useTarotReading(activeCardIndex);
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   // Initialize the spread once when the component mounts
   useEffect(() => {
+    if (hasInitialized) return;
+
     console.log('[ReadingPage] Mount effect - Current state:', {
       question,
       spread,
@@ -47,8 +50,9 @@ const ReadingPage: React.FC = () => {
       const size = getSpreadSize(spread);
       console.log('[ReadingPage] Initializing spread with size:', size);
       initializeSpread(size);
+      setHasInitialized(true);
     }
-  }, []);
+  }, [question, spread, cards.length, isInitializing, navigate, initializeSpread, hasInitialized]);
 
   // Log state changes
   useEffect(() => {
@@ -95,11 +99,15 @@ const ReadingPage: React.FC = () => {
         </div>
 
         <div className="mt-8" data-testid="chat-section">
-          {cards[activeCardIndex]?.text && (
+          {isCardLoading ? (
+            <div className="mb-4 p-4 bg-black/20 backdrop-blur-sm rounded-lg flex justify-center">
+              <LoadingDots />
+            </div>
+          ) : cards[activeCardIndex]?.text ? (
             <div className="mb-4 p-4 bg-black/20 backdrop-blur-sm rounded-lg" data-testid="card-text">
               {cards[activeCardIndex].text}
             </div>
-          )}
+          ) : null}
 
           <ChatBox
             messages={messages}
