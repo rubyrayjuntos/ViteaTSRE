@@ -28,18 +28,21 @@ export const useTarotReading = (cardIndex: number) => {
       const textResponse = await fetchCardText(cardIndex, question);
       if (!isMounted.current) return;
 
-      if (textResponse.id && textResponse.text) {
+      if (textResponse.cards && textResponse.cards[cardIndex]) {
+        const cardData = textResponse.cards[cardIndex];
         console.log(`[TarotReading] Updating card ${cardIndex} with text`);
         updateCardData(cardIndex, {
-          id: textResponse.id,
-          text: textResponse.text
+          id: cardData.card,
+          text: cardData.text
         });
 
-        const imageUrl = await fetchCardImage(textResponse.id);
+        const imageUrl = await fetchCardImage(cardData.card);
         if (!isMounted.current) return;
 
         console.log(`[TarotReading] Updating card ${cardIndex} with image`);
         updateCardData(cardIndex, { imageUrl });
+      } else {
+        throw new Error('Card data not found in response');
       }
     } catch (error) {
       console.error(`[TarotReading] Error loading card ${cardIndex}:`, error);
@@ -49,6 +52,7 @@ export const useTarotReading = (cardIndex: number) => {
           message: (error as ApiError)?.message || 'Failed to load card data',
           timestamp: Date.now()
         });
+        updateCardStatus(cardIndex, { isLoading: false });
       }
     } finally {
       if (isMounted.current) {

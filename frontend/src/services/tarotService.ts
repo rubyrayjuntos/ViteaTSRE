@@ -1,7 +1,5 @@
 // /workspaces/ViteaTSRE/src/services/tarotService.ts
 /// <reference types="vite/client" />
-import { env, ERROR_MESSAGES } from '../env';
-import { Card } from '../stores/useTarotStore';
 
 const BACKEND_URL = ((import.meta as any).env?.VITE_BACKEND_URL as string) || 'http://localhost:8000';
 
@@ -11,18 +9,12 @@ export interface CardRequestPayload {
   cardNumberInSpread: number; // 0-indexed
 }
 
-const fetchOptions = {
-  headers: { 
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-  },
-  mode: 'cors' as RequestMode,
-};
-
 // API Response Types
 export interface CardTextResponse {
-  id: string;
-  text: string;
+  cards: Array<{
+    card: string;
+    text: string;
+  }>;
 }
 
 export interface CardImageResponse {
@@ -32,11 +24,6 @@ export interface CardImageResponse {
 export interface ChatResponse {
   response: string;
 }
-
-// Common error handling and request configuration
-const API_TIMEOUT = 30000; // 30 seconds
-const MAX_RETRIES = 2;
-const RETRY_DELAY = 1000; // 1 second
 
 class ApiError extends Error {
   constructor(
@@ -48,8 +35,6 @@ class ApiError extends Error {
     this.name = 'ApiError';
   }
 }
-
-const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const fetchWithRetry = async <T>(url: string, options: RequestInit, retries = 3): Promise<T> => {
   let lastError: Error | null = null;
