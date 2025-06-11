@@ -1,5 +1,5 @@
 // src/pages/ReadingPage.tsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTarotStore } from '../stores/useTarotStore';
 import { TarotCard } from '../components/TarotCard';
@@ -27,32 +27,30 @@ const ReadingPage: React.FC = () => {
   const [activeCardIndex, setActiveCardIndex] = useState(0);
   const { sendMessage, messages, isLoading: isChatLoading } = useTarotChat(activeCardIndex);
   const { isLoading: isCardLoading } = useTarotReading(activeCardIndex);
-  const [hasInitialized, setHasInitialized] = useState(false);
+  const hasInitialized = useRef(false);
 
   // Initialize the spread once when the component mounts
   useEffect(() => {
-    if (hasInitialized) return;
-
-    console.log('[ReadingPage] Mount effect - Current state:', {
-      question,
-      spread,
-      cardsLength: cards.length,
-      isInitializing
-    });
-
     if (!question) {
       console.log('[ReadingPage] No question found, redirecting to home');
       navigate('/');
       return;
     }
 
-    if (!cards.length && !isInitializing) {
+    if (!hasInitialized.current && !cards.length && !isInitializing) {
+      console.log('[ReadingPage] Mount effect - Current state:', {
+        question,
+        spread,
+        cardsLength: cards.length,
+        isInitializing
+      });
+
       const size = getSpreadSize(spread);
       console.log('[ReadingPage] Initializing spread with size:', size);
       initializeSpread(size);
-      setHasInitialized(true);
+      hasInitialized.current = true;
     }
-  }, [question, spread, cards.length, isInitializing, navigate, initializeSpread, hasInitialized]);
+  }, [question, spread, cards.length, isInitializing, navigate, initializeSpread]);
 
   // Log state changes
   useEffect(() => {

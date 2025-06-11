@@ -88,7 +88,7 @@ export const fetchCardText = async (cardIndex: number, question: string): Promis
   console.log(`[API] Fetching card text for index ${cardIndex} with question: ${question}`);
   try {
     const response = await fetchWithRetry<CardTextResponse>(
-      `${env.VITE_BACKEND_URL}/api/reading/text`,
+      `${BACKEND_URL}/api/reading/text`,
       {
         method: 'POST',
         headers: {
@@ -112,7 +112,7 @@ export const fetchCardImage = async (cardId: string): Promise<string> => {
   console.log(`[API] Fetching card image for ID ${cardId}`);
   try {
     const data = await fetchWithRetry<CardImageResponse>(
-      `${env.VITE_BACKEND_URL}/api/reading/image`,
+      `${BACKEND_URL}/api/reading/image`,
       {
         method: 'POST',
         headers: {
@@ -138,7 +138,7 @@ export const fetchChatResponse = async (
 ): Promise<string> => {
   try {
     const data = await fetchWithRetry<ChatResponse>(
-      `${env.VITE_BACKEND_URL}/api/chat`,
+      `${BACKEND_URL}/api/chat`,
       {
         method: 'POST',
         headers: {
