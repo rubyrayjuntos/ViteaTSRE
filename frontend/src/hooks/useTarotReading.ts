@@ -18,31 +18,51 @@ export const useTarotReading = (cardIndex: number) => {
   }, []);
 
   const loadCardData = useCallback(async () => {
-    if (isLoadingRef.current) return;
+    if (isLoadingRef.current) {
+      console.log(`[TarotReading] Already loading data for card ${cardIndex}`);
+      return;
+    }
+
     isLoadingRef.current = true;
     console.log(`[TarotReading] Loading data for card ${cardIndex}`);
 
-    updateCardStatus(cardIndex, { isLoading: true });
-
     try {
+      // Set loading state
+      updateCardStatus(cardIndex, { isLoading: true });
+
+      // Fetch card text
       const textResponse = await fetchCardText(cardIndex, question);
       if (!isMounted.current) return;
 
-      if (textResponse.cards && textResponse.cards[cardIndex]) {
+      if (textResponse.cards?.[cardIndex]) {
         const cardData = textResponse.cards[cardIndex];
-        console.log(`[TarotReading] Updating card ${cardIndex} with text`);
+        console.log(`[TarotReading] Received text for card ${cardIndex}:`, cardData);
+
+        // Update card text
         updateCardData(cardIndex, {
           id: cardData.card,
           text: cardData.text
         });
 
-        const imageUrl = await fetchCardImage(cardData.card);
-        if (!isMounted.current) return;
+        // Fetch image only if we successfully got text
+        try {
+          const imageUrl = await fetchCardImage(cardData.card);
+          if (!isMounted.current) return;
 
-        console.log(`[TarotReading] Updating card ${cardIndex} with image`);
-        updateCardData(cardIndex, { imageUrl });
+          console.log(`[TarotReading] Received image for card ${cardIndex}:`, imageUrl);
+          updateCardData(cardIndex, { imageUrl });
+        } catch (imageError) {
+          console.error(`[TarotReading] Error loading image for card ${cardIndex}:`, imageError);
+          if (isMounted.current) {
+            setCardError(cardIndex, {
+              type: 'IMAGE_LOAD',
+              message: (imageError as ApiError)?.message || 'Failed to load card image',
+              timestamp: Date.now()
+            });
+          }
+        }
       } else {
-        throw new Error('Card data not found in response');
+        throw new Error(`Card data not found in response for index ${cardIndex}`);
       }
     } catch (error) {
       console.error(`[TarotReading] Error loading card ${cardIndex}:`, error);
@@ -52,29 +72,39 @@ export const useTarotReading = (cardIndex: number) => {
           message: (error as ApiError)?.message || 'Failed to load card data',
           timestamp: Date.now()
         });
-        updateCardStatus(cardIndex, { isLoading: false });
       }
     } finally {
       if (isMounted.current) {
-        updateCardStatus(cardIndex, { 
-          isLoading: false,
-          hasLoadedText: true // Ensure we mark text as loaded even if image fails
-        });
+        isLoadingRef.current = false;
       }
-      isLoadingRef.current = false;
     }
   }, [cardIndex, question, updateCardData, updateCardStatus, setCardError]);
 
   useEffect(() => {
     const card = cards[cardIndex];
-
-    if (!card || isLoadingRef.current || card.status.hasLoadedText || !question) {
-      console.log('[TarotReading] Skipping load - card missing or already loaded');
+    if (!card) {
+      console.log(`[TarotReading] No card found at index ${cardIndex}`);
       return;
     }
 
+    if (isLoadingRef.current) {
+      console.log(`[TarotReading] Already loading card ${cardIndex}`);
+      return;
+    }
+
+    if (card.status.hasLoadedText) {
+      console.log(`[TarotReading] Card ${cardIndex} already loaded`);
+      return;
+    }
+
+    if (!question) {
+      console.log(`[TarotReading] No question set for card ${cardIndex}`);
+      return;
+    }
+
+    console.log(`[TarotReading] Starting load for card ${cardIndex}`);
     loadCardData();
-  }, [cardIndex, question, cards, loadCardData]);
+  }, [cardIndex, cards, question, loadCardData]);
 
   const card = cards[cardIndex];
   return {

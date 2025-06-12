@@ -45,6 +45,10 @@ interface TarotState {
   reset: () => void;
 }
 
+const checkAllCardsLoaded = (cards: Card[]): boolean => {
+  return cards.every(card => card.status.hasLoadedText && card.status.hasLoadedImage);
+};
+
 export const useTarotStore = create<TarotState>((set) => ({
   question: '',
   spreadSize: 0,
@@ -72,7 +76,7 @@ export const useTarotStore = create<TarotState>((set) => ({
         text: '',
         imageUrl: '',
         status: {
-          isLoading: true,
+          isLoading: false,
           hasLoadedText: false,
           hasLoadedImage: false,
           error: undefined
@@ -110,7 +114,7 @@ export const useTarotStore = create<TarotState>((set) => ({
         }
         
         // Update loading state
-        newStatus.isLoading = !(newStatus.hasLoadedText && newStatus.hasLoadedImage);
+        newStatus.isLoading = false;
 
         // Update the card with new data and status
         newCards[cardIndex] = {
@@ -126,7 +130,7 @@ export const useTarotStore = create<TarotState>((set) => ({
       }
       
       // Check if all cards are loaded
-      const allCardsLoaded = newCards.every(card => !card.status.isLoading);
+      const allCardsLoaded = checkAllCardsLoaded(newCards);
       console.log('[Store] All cards loaded:', allCardsLoaded);
       
       return { 
@@ -148,7 +152,14 @@ export const useTarotStore = create<TarotState>((set) => ({
             ...status
           }
         };
-        return { cards: newCards, globalError: undefined };
+
+        // Check if all cards are loaded whenever we update status
+        const allCardsLoaded = checkAllCardsLoaded(newCards);
+        return { 
+          cards: newCards, 
+          isInitializing: !allCardsLoaded,
+          globalError: undefined 
+        };
       }
       console.error(`[Store] Failed to update card status ${cardIndex}: Invalid index`);
       return { globalError: `Failed to update card status ${cardIndex}: Invalid index` };
@@ -162,10 +173,14 @@ export const useTarotStore = create<TarotState>((set) => ({
           ...newCards[cardIndex],
           status: {
             ...newCards[cardIndex].status,
-            error: { ...error, timestamp: Date.now() }
+            error: { ...error, timestamp: Date.now() },
+            isLoading: false
           }
         };
-        return { cards: newCards };
+        return { 
+          cards: newCards,
+          isInitializing: false // Exit initializing state on error
+        };
       }
       return { globalError: `Failed to set error for card ${cardIndex}: Invalid index` };
     }),
@@ -199,18 +214,16 @@ export const useTarotStore = create<TarotState>((set) => ({
             { ...message, timestamp: Date.now() }
           ]
         };
-        return { cards: newCards, globalError: undefined };
+        return { cards: newCards };
       }
-      return { globalError: `Failed to add message to card ${cardIndex}: Invalid index` };
+      return { globalError: `Failed to add message for card ${cardIndex}: Invalid index` };
     }),
 
-  reset: () =>
-    set({
-      question: '',
-      spreadSize: 0,
-      spread: 'Destiny',
-      cards: [],
-      isInitializing: false,
-      globalError: undefined
-    })
+  reset: () => set({
+    question: '',
+    spreadSize: 0,
+    cards: [],
+    isInitializing: false,
+    globalError: undefined
+  })
 }));
