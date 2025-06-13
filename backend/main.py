@@ -69,6 +69,7 @@ app = FastAPI(title="Papi Chispa API")
 origins = os.getenv("ALLOWED_ORIGINS", "").split(",")
 if not origins or (len(origins) == 1 and not origins[0]):  # If no origins set, allow all in development
     origins = [
+        # Development URLs
         "http://localhost:5173",
         "http://localhost:5174",
         "http://localhost:5175",
@@ -80,7 +81,10 @@ if not origins or (len(origins) == 1 and not origins[0]):  # If no origins set, 
         "http://127.0.0.1:5175",
         "http://127.0.0.1:5176",
         "http://127.0.0.1:5177",
-        "http://127.0.0.1:3000"
+        "http://127.0.0.1:3000",
+        # Production URLs
+        "https://viteatsre.vercel.app",
+        "https://viteatsre-frontend.onrender.com"
     ]
 
 logging.info(f"Configuring CORS with allowed origins: {origins}")
