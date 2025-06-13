@@ -68,13 +68,26 @@ app = FastAPI(title="Papi Chispa API")
 # Configure CORS
 origins = os.getenv("ALLOWED_ORIGINS", "").split(",")
 if not origins or (len(origins) == 1 and not origins[0]):  # If no origins set, allow all in development
-    origins = ["*"]
+    origins = [
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://localhost:5175",
+        "http://localhost:5176",
+        "http://localhost:5177",
+        "http://localhost:3000",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174",
+        "http://127.0.0.1:5175",
+        "http://127.0.0.1:5176",
+        "http://127.0.0.1:5177",
+        "http://127.0.0.1:3000"
+    ]
 
 logging.info(f"Configuring CORS with allowed origins: {origins}")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins if "*" not in origins else ["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -378,7 +391,7 @@ async def get_card_image(request: Request):
     """Generate an image for a card with enhanced error handling."""
     try:
         data = await request.json()
-        card_name = data.get("card")
+        card_name = data.get("card_id")
         
         if not card_name:
             raise TarotError("Mi amor, I need to know which card to visualize for you.")
@@ -387,18 +400,25 @@ async def get_card_image(request: Request):
             raise CardNotFoundError(card_name)
 
         try:
-            # Generate image using DALL-E
+            # Generate image using DALL-E with proper prompt
+            style_guide = get_image_prompt_style()
+            prompt = f"""Tarot card illustration of {card_name}.
+{style_guide}
+Make it emotionally evocative and dramatically lit."""
+
             response = await client.images.generate(
-                model="dall-e-3",
-                prompt=generate_image_prompt(card_name),
+                model=DALL_E_MODEL,
+                prompt=prompt,
                 n=1,
                 size="1024x1024"
             )
 
             if not response.data or not response.data[0].url:
+                logging.error(f"No image URL returned for card {card_name}")
                 raise OpenAIServiceError("image generation")
 
-            return {"url": response.data[0].url}
+            logging.info(f"Successfully generated image for card {card_name}")
+            return {"imageUrl": response.data[0].url}
 
         except OpenAIError as e:
             logging.error(f"OpenAI API error generating image for card {card_name}: {str(e)}")
@@ -408,7 +428,7 @@ async def get_card_image(request: Request):
         # Already formatted with Papi's voice
         raise e
     except Exception as e:
-        logging.error(f"Unexpected error in image generation endpoint: {str(e)}")
+        logging.error(f"Unexpected error in image generation endpoint: {str(e)}\n{traceback.format_exc()}")
         raise TarotError(
             "Ay, the spirits are having trouble painting this vision. Let's try again, mi amor.",
             status_code=500

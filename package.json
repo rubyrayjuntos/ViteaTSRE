@@ -1,0 +1,11 @@
+{
+  "name": "viteatsre",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "pnpm --filter frontend dev"
+  }
+} 

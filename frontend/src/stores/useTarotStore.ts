@@ -97,7 +97,7 @@ export const useTarotStore = create<TarotState>((set) => ({
         const card = newCards[cardIndex];
         const newStatus = { ...card.status };
 
-        // Update card data
+        // Update card data and track completion state
         if (data.text) {
           newStatus.hasLoadedText = true;
           // Clear any text-related errors when we successfully load text
@@ -113,7 +113,9 @@ export const useTarotStore = create<TarotState>((set) => ({
           }
         }
         
-        // Update loading state
+        // Set loading to false after any successful data update
+        // This allows UI to show partial data (e.g., text while image loads)
+        // while maintaining separate loading indicators for each data type
         newStatus.isLoading = false;
 
         // Update the card with new data and status
@@ -173,13 +175,18 @@ export const useTarotStore = create<TarotState>((set) => ({
           ...newCards[cardIndex],
           status: {
             ...newCards[cardIndex].status,
+            // Explicitly set loading to false on error to prevent UI hangs
+            // and ensure loading indicators are cleared
             error: { ...error, timestamp: Date.now() },
             isLoading: false
           }
         };
+        // Exit initializing state when any card errors
+        // This prevents the spread from being stuck in a loading state
+        // if one or more cards fail to load
         return { 
           cards: newCards,
-          isInitializing: false // Exit initializing state on error
+          isInitializing: false
         };
       }
       return { globalError: `Failed to set error for card ${cardIndex}: Invalid index` };
@@ -224,6 +231,7 @@ export const useTarotStore = create<TarotState>((set) => ({
     spreadSize: 0,
     cards: [],
     isInitializing: false,
-    globalError: undefined
+    globalError: undefined,
+    spread: 'Destiny' // Default spread type
   })
 }));

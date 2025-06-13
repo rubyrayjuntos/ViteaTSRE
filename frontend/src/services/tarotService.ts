@@ -104,7 +104,7 @@ export const fetchCardImage = async (cardId: string): Promise<string> => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          card: cardId,
+          card_id: cardId,
         }),
       }
     );
