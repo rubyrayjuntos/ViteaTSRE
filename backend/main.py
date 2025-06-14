@@ -393,7 +393,7 @@ async def get_card_image(req: CardReq):
                 raise OpenAIServiceError("image generation")
 
             logging.info(f"Image generated for {card_name}: {image_url}")
-            return {"imageUrl": image_url}
+            return CardImageOut(id=card_name, imageUrl=image_url)
 
         except OpenAIError as e:
             logging.error(f"OpenAI API error generating image for card {card_name}: {str(e)}")
