@@ -313,11 +313,11 @@ async def create_reading(req: ReadingReq):
                 generate_image_for_card(name),
                 generate_text_for_card(name, req.question, req.spread, index)
             )
-            return CardOut(name=name, imageUrl=image_url, text=text_content)
+            return CardOut(id=name, imageUrl=image_url, text=text_content)
         except Exception as e:
             logging.error(f"Error processing card {name} in /reading: {e}\n{traceback.format_exc()}")
             # Return a card with error indicators
-            return CardOut(name=name, imageUrl="", text=f"Error fetching details for {name}.")
+            return CardOut(id=name, imageUrl="", text=f"Error fetching details for {name}.")
 
     card_tasks = [generate_card_data(name, i) for i, name in enumerate(chosen_card_names)]
     results = await asyncio.gather(*card_tasks, return_exceptions=False) # Let individual errors be handled within generate_card_data
@@ -373,12 +373,11 @@ async def get_reading(request: Request):
         )
 
 
-@app.post("/api/reading/image")
-async def get_card_image(request: Request):
+@app.post("/api/reading/image", response_model=CardImageOut)
+async def get_card_image(req: CardReq):
     """Generate an image for a card with enhanced error handling."""
     try:
-        data = await request.json()
-        card_name = data.get("card")
+        card_name = req.card_id
         
         if not card_name:
             raise TarotError("Mi amor, I need to know which card to visualize for you.")
@@ -387,18 +386,14 @@ async def get_card_image(request: Request):
             raise CardNotFoundError(card_name)
 
         try:
-            # Generate image using DALL-E
-            response = await client.images.generate(
-                model="dall-e-3",
-                prompt=generate_image_prompt(card_name),
-                n=1,
-                size="1024x1024"
-            )
+            # Generate image URL using shared helper
+            image_url = await generate_image_for_card(card_name)
 
-            if not response.data or not response.data[0].url:
+            if not image_url:
                 raise OpenAIServiceError("image generation")
 
-            return {"url": response.data[0].url}
+            logging.info(f"Image generated for {card_name}: {image_url}")
+            return CardImageOut(id=card_name, imageUrl=image_url)
 
         except OpenAIError as e:
             logging.error(f"OpenAI API error generating image for card {card_name}: {str(e)}")
